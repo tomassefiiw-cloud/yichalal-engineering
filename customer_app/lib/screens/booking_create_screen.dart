@@ -112,7 +112,7 @@ class _BookingCreateScreenState extends State<BookingCreateScreen> {
             },
           ))
         else
-          Card(color: AppColors.warn.withOpacity(0.12), child: const ListTile(
+          Card(color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF3D2E18) : AppColors.warn.withOpacity(0.14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: AppColors.warn.withOpacity(0.55))), child: const ListTile(
             leading: Icon(Icons.warning_amber_outlined, color: AppColors.warn),
             title: Text('No vehicles in your garage'),
             subtitle: Text('Tap Garage tab → + to add one before booking.'),

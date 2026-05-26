@@ -80,7 +80,7 @@ jobs:
             --dart-define=OPENROUTER_MODEL=${{ env.OPENROUTER_MODEL }}
 
       - name: Customer — rename
-        run: mv customer_app/build/app/outputs/flutter-apk/app-release.apk yichalal-customer-v1.0.2.apk
+        run: mv customer_app/build/app/outputs/flutter-apk/app-release.apk yichalal-customer-v1.0.4.apk
 
       # ── Mechanic app ──
       - name: Mechanic — pub get
@@ -99,11 +99,11 @@ jobs:
             --dart-define=OPENROUTER_MODEL=${{ env.OPENROUTER_MODEL }}
 
       - name: Mechanic — rename
-        run: mv mechanic_app/build/app/outputs/flutter-apk/app-release.apk yichalal-mechanic-v1.0.2.apk
+        run: mv mechanic_app/build/app/outputs/flutter-apk/app-release.apk yichalal-mechanic-v1.0.4.apk
 
       - name: Zip source
         run: |
-          zip -rq yichalal-source-v1.0.2.zip customer_app mechanic_app shared_core supabase README.md \
+          zip -rq yichalal-source-v1.0.4.zip customer_app mechanic_app shared_core supabase README.md \
             -x "*/build/*" "*/.gradle/*" "*/.dart_tool/*"
 
       - name: Show artifact info
@@ -118,15 +118,15 @@ jobs:
           SERVER=$(curl -s https://api.gofile.io/servers | python3 -c "import sys,json;print(json.load(sys.stdin)['data']['servers'][0]['name'])")
           echo "Server: $SERVER"
 
-          CR=$(curl -s -X POST "https://${SERVER}.gofile.io/contents/uploadfile" -F "file=@yichalal-customer-v1.0.2.apk")
+          CR=$(curl -s -X POST "https://${SERVER}.gofile.io/contents/uploadfile" -F "file=@yichalal-customer-v1.0.4.apk")
           CURL=$(echo "$CR" | python3 -c "import sys,json;print(json.load(sys.stdin)['data']['downloadPage'])")
           echo "customer_url=$CURL" >> $GITHUB_OUTPUT
 
-          MR=$(curl -s -X POST "https://${SERVER}.gofile.io/contents/uploadfile" -F "file=@yichalal-mechanic-v1.0.2.apk")
+          MR=$(curl -s -X POST "https://${SERVER}.gofile.io/contents/uploadfile" -F "file=@yichalal-mechanic-v1.0.4.apk")
           MURL=$(echo "$MR" | python3 -c "import sys,json;print(json.load(sys.stdin)['data']['downloadPage'])")
           echo "mechanic_url=$MURL" >> $GITHUB_OUTPUT
 
-          ZR=$(curl -s -X POST "https://${SERVER}.gofile.io/contents/uploadfile" -F "file=@yichalal-source-v1.0.2.zip")
+          ZR=$(curl -s -X POST "https://${SERVER}.gofile.io/contents/uploadfile" -F "file=@yichalal-source-v1.0.4.zip")
           ZURL=$(echo "$ZR" | python3 -c "import sys,json;print(json.load(sys.stdin)['data']['downloadPage'])")
           echo "source_url=$ZURL" >> $GITHUB_OUTPUT
 
@@ -154,7 +154,7 @@ jobs:
         with:
           name: yichalal-apks
           path: |
-            yichalal-customer-v1.0.2.apk
-            yichalal-mechanic-v1.0.2.apk
-            yichalal-source-v1.0.2.zip
+            yichalal-customer-v1.0.4.apk
+            yichalal-mechanic-v1.0.4.apk
+            yichalal-source-v1.0.4.zip
           retention-days: 30

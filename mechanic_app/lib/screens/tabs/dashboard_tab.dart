@@ -9,13 +9,38 @@ class DashboardTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<Auth>().currentUser!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ListView(padding: const EdgeInsets.all(16), children: [
       if (!user.kycVerified)
-        Card(color: AppColors.warn.withOpacity(0.14), child: const ListTile(
-          leading: Icon(Icons.warning_amber_outlined, color: AppColors.warn),
-          title: Text('KYC verification pending', style: TextStyle(fontWeight: FontWeight.w800)),
-          subtitle: Text('You will start receiving jobs once admin verifies your documents.'),
-        )),
+        Card(
+          color: isDark
+              ? const Color(0xFF3D2E18)        // warm dark amber, very readable on dark
+              : AppColors.warn.withOpacity(0.18),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+            side: BorderSide(color: AppColors.warn.withOpacity(0.55), width: 1.4),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Icon(Icons.warning_amber_rounded, color: AppColors.warn, size: 24),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('KYC verification pending',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800, fontSize: 14,
+                      color: isDark ? AppColors.darkText : AppColors.text,
+                    )),
+                const SizedBox(height: 4),
+                Text('You will start receiving jobs once an admin verifies your documents.',
+                    style: TextStyle(
+                      fontSize: 12.5, height: 1.4,
+                      color: isDark ? AppColors.darkText.withOpacity(0.85) : AppColors.text.withOpacity(0.75),
+                    )),
+              ])),
+            ]),
+          ),
+        ),
       if (!user.kycVerified) const SizedBox(height: 12),
       Container(
         padding: const EdgeInsets.all(20),

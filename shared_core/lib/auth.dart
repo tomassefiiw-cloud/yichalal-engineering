@@ -19,8 +19,11 @@ class Auth extends ChangeNotifier {
     if (id != null) {
       try {
         currentUser = await Repo.instance.findUserById(id);
-        // If user not found (deleted from DB), clear stale session.
-        if (currentUser == null) await prefs.remove(_prefId);
+        // If user not found (deleted from DB), clear stale session so the
+        // user lands on the auth screen instead of seeing FK errors later.
+        if (currentUser == null) {
+          await prefs.remove(_prefId);
+        }
       } catch (_) {
         await prefs.remove(_prefId);
       }
@@ -49,6 +52,11 @@ class Auth extends ChangeNotifier {
   }
 
   /// Create an account (role-locked to whichever app is running).
+  ///
+  /// The local session is only saved AFTER Supabase confirms the row is
+  /// actually persisted. If the insert silently fails, we throw instead of
+  /// leaving a phantom session that would later cause FK errors when the
+  /// user tries to add a vehicle / book a service.
   Future<AppUser> register({
     required String phone, required String fullName, String? email, required String address,
     required UserRole role, required List<EngineType> engineTypes,
@@ -69,9 +77,19 @@ class Auth extends ChangeNotifier {
         workshopPhotoUrls: workshopPhotoUrls,
         kycVerified: role == UserRole.customer, // customers auto-verified
       );
-      final saved = await Repo.instance.upsertUser(u);
-      await _saveSession(saved);
-      return saved;
+      AppUser saved;
+      try {
+        saved = await Repo.instance.upsertUser(u);
+      } on PostgrestException catch (e) {
+        throw _humanError(e);
+      }
+      // Verify the row actually made it (defends against silent RLS rejects).
+      final readBack = await Repo.instance.findUserById(saved.id);
+      if (readBack == null) {
+        throw 'Account could not be created. The server accepted the request but no row was stored — check Supabase RLS / schema.';
+      }
+      await _saveSession(readBack);
+      return readBack;
     } on PostgrestException catch (e) {
       throw _humanError(e);
     } catch (e) {
@@ -80,18 +98,20 @@ class Auth extends ChangeNotifier {
     }
   }
 
-  /// Re-create the current user's profile row in Supabase. Useful when an old
-  /// session points to an id that's missing from the database (e.g. dropped
-  /// during testing). Called automatically when an FK error is detected
-  /// downstream.
+  /// Re-create the current user's profile row in Supabase if missing.
+  /// Returns true if the row exists (or was successfully recreated).
+  /// Called automatically by repo when an FK error is detected on writes.
   Future<bool> ensureProfileExists() async {
     final u = currentUser;
     if (u == null) return false;
     try {
       final existing = await Repo.instance.findUserById(u.id);
       if (existing != null) return true;
+      // Profile missing — recreate from in-memory user.
       await Repo.instance.upsertUser(u);
-      return true;
+      // Verify it actually landed.
+      final after = await Repo.instance.findUserById(u.id);
+      return after != null;
     } catch (_) {
       return false;
     }

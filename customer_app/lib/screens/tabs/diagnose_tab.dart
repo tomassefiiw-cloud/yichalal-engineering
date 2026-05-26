@@ -148,14 +148,26 @@ class _DiagnoseTabState extends State<DiagnoseTab> {
   }
 
   Widget _bubble(_Msg m) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     if (m.loading) {
       return Align(alignment: Alignment.centerLeft, child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(color: AppColors.orangeLight, borderRadius: BorderRadius.circular(16)),
-        child: const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.orangeDark)),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkCard : AppColors.orangeLight,
+          borderRadius: BorderRadius.circular(16),
+          border: isDark ? Border.all(color: AppColors.darkBorder) : null,
+        ),
+        child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: isDark ? AppColors.orange : AppColors.orangeDark)),
       ));
     }
+    // Explicit colors so AI response text stays readable in BOTH themes.
+    final bubbleColor = m.fromUser
+        ? AppColors.orange
+        : (isDark ? AppColors.darkCard : AppColors.orangeLight);
+    final textColor = m.fromUser
+        ? Colors.white
+        : (isDark ? AppColors.darkText : AppColors.text);
     return Align(
       alignment: m.fromUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -163,14 +175,18 @@ class _DiagnoseTabState extends State<DiagnoseTab> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.82),
         decoration: BoxDecoration(
-          color: m.fromUser ? AppColors.orange : AppColors.orangeLight,
+          color: bubbleColor,
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(18), topRight: const Radius.circular(18),
             bottomLeft: Radius.circular(m.fromUser ? 18 : 4),
             bottomRight: Radius.circular(m.fromUser ? 4 : 18),
           ),
+          border: (isDark && !m.fromUser) ? Border.all(color: AppColors.darkBorder) : null,
         ),
-        child: SelectableText(m.text, style: TextStyle(color: m.fromUser ? Colors.white : Theme.of(context).textTheme.bodyMedium?.color ?? AppColors.text, fontSize: 14, height: 1.4)),
+        child: SelectableText(
+          m.text,
+          style: TextStyle(color: textColor, fontSize: 14, height: 1.45, fontWeight: FontWeight.w500),
+        ),
       ),
     );
   }

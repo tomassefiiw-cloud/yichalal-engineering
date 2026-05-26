@@ -19,6 +19,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
   Widget build(BuildContext context) {
     final isCustomer = widget.role == UserRole.customer;
     final primary = AppColors.orange;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       body: SafeArea(
         child: Column(children: [
@@ -26,13 +27,13 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
           GearLogo(size: 90, primary: primary, secondary: AppColors.orangeDark),
           const SizedBox(height: 8),
           Text(isCustomer ? 'Customer' : 'Mechanic',
-              style: TextStyle(color: AppColors.textMute, fontSize: 13, letterSpacing: 1)),
+              style: TextStyle(color: isDark ? AppColors.darkTextMute : AppColors.textMute, fontSize: 13, letterSpacing: 1)),
           const SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 40),
             child: TabBar(
               controller: _tab,
-              labelColor: primary, unselectedLabelColor: AppColors.textMute,
+              labelColor: primary, unselectedLabelColor: isDark ? AppColors.darkTextMute : AppColors.textMute,
               indicatorColor: primary, indicatorWeight: 3,
               tabs: const [Tab(text: 'Sign in'), Tab(text: 'Sign up')],
             ),
@@ -82,18 +83,20 @@ class _LoginFormState extends State<_LoginForm> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final mute = isDark ? AppColors.darkTextMute : AppColors.textMute;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Text('Welcome back', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
         const SizedBox(height: 6),
-        Text('Sign in with your phone number to continue.', style: TextStyle(color: AppColors.textMute)),
+        Text('Sign in with your phone number to continue.', style: TextStyle(color: mute)),
         const SizedBox(height: 22),
         TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Phone', prefixIcon: Icon(Icons.phone_android))),
         if (_sent) ...[
           const SizedBox(height: 14),
           TextField(controller: _otp, keyboardType: TextInputType.number, maxLength: 6, decoration: const InputDecoration(labelText: 'OTP code', prefixIcon: Icon(Icons.lock_outline))),
-          Text('Demo OTP 123456 (auto-filled)', style: TextStyle(color: AppColors.textMute, fontSize: 12)),
+          Text('Demo OTP 123456 (auto-filled)', style: TextStyle(color: mute, fontSize: 12)),
           const SizedBox(height: 14),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: widget.primary, minimumSize: const Size.fromHeight(52)),
@@ -173,6 +176,7 @@ class _SignupFormState extends State<_SignupForm> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -186,7 +190,9 @@ class _SignupFormState extends State<_SignupForm> {
         const SizedBox(height: 12),
         TextField(controller: _address, maxLines: 2, decoration: const InputDecoration(labelText: 'Address / landmark', prefixIcon: Icon(Icons.location_on_outlined))),
         const SizedBox(height: 16),
-        const Text('Engine types I drive / service', style: TextStyle(fontWeight: FontWeight.w600)),
+        Text('Engine types I drive / service',
+            style: TextStyle(fontWeight: FontWeight.w600,
+                color: isDark ? AppColors.darkText : AppColors.text)),
         const SizedBox(height: 6),
         Wrap(spacing: 8, runSpacing: 8, children: EngineType.values.map((e) => FilterChip(
           label: Text(e.name.toUpperCase()),
@@ -195,7 +201,9 @@ class _SignupFormState extends State<_SignupForm> {
         )).toList()),
         if (isMech) ...[
           const SizedBox(height: 20),
-          const Text('Legal & verification (required)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+          Text('Legal & verification (required)',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15,
+                  color: isDark ? AppColors.darkText : AppColors.text)),
           const SizedBox(height: 10),
           TextField(controller: _licenseId, decoration: const InputDecoration(labelText: 'Trade License #', prefixIcon: Icon(Icons.badge_outlined))),
           const SizedBox(height: 12),
@@ -203,12 +211,27 @@ class _SignupFormState extends State<_SignupForm> {
           const SizedBox(height: 12),
           TextField(controller: _specialties, decoration: const InputDecoration(labelText: 'Specialties (comma-separated)', prefixIcon: Icon(Icons.build_outlined))),
           const SizedBox(height: 8),
-          Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: AppColors.orangeLight, borderRadius: BorderRadius.circular(12)),
-            child: const Row(children: [
-              Icon(Icons.info_outline, color: AppColors.orangeDark, size: 18),
-              SizedBox(width: 8),
-              Expanded(child: Text('Your KYC verification status will be reviewed by Yichalal admin. You can start receiving jobs once verified.', style: TextStyle(fontSize: 12))),
-            ])),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF2A1F18) : AppColors.orangeLight,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.orange.withOpacity(0.35)),
+            ),
+            child: Row(children: [
+              const Icon(Icons.info_outline, color: AppColors.orange, size: 18),
+              const SizedBox(width: 8),
+              Expanded(child: Text(
+                'Your KYC verification status will be reviewed by Yichalal admin. You can start receiving jobs once verified.',
+                style: TextStyle(
+                  fontSize: 12,
+                  height: 1.4,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? AppColors.darkText : AppColors.text,
+                ),
+              )),
+            ]),
+          ),
         ],
         const SizedBox(height: 16),
         CheckboxListTile(

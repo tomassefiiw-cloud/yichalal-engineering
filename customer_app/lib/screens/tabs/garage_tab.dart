@@ -101,6 +101,7 @@ class _VehicleFormState extends State<_VehicleForm> {
     setState(() => _saving = true);
     final auth = context.read<Auth>();
     final user = auth.currentUser!;
+
     Future<void> doInsert() async {
       await Repo.instance.upsertVehicle(Vehicle(
         id: const Uuid().v4(),
@@ -115,37 +116,54 @@ class _VehicleFormState extends State<_VehicleForm> {
         vin: _vin.text.trim().isEmpty ? null : _vin.text.trim(),
       ));
     }
+
     try {
+      // STEP 1: ensure profile row exists FIRST. Don't wait for an FK error
+      // — proactively check + recreate. Fixes "could not add vehicle to your
+      // profile" for users whose Supabase row went missing.
+      final profileOk = await auth.ensureProfileExists();
+      if (!profileOk) {
+        setState(() {
+          _error = 'Your account profile is missing from the server. Please log out and sign up again with the same phone.';
+          _saving = false;
+        });
+        return;
+      }
+
+      // STEP 2: try the insert. On any error try one recovery cycle.
       try {
         await doInsert();
       } catch (e) {
-        final msg = e.toString().toLowerCase();
-        // If FK error (profile row missing for this id), upsert the profile
-        // automatically and retry the vehicle insert once. Common after a
-        // database wipe or for users who signed up before the schema ran.
-        if (msg.contains('foreign key') || msg.contains('violates') || msg.contains('23503')) {
-          await auth.ensureProfileExists();
-          await doInsert();
-        } else {
-          rethrow;
-        }
+        // Force-recreate profile (in case it was deleted between step 1 & 2)
+        // and retry the insert ONCE before giving up.
+        await auth.ensureProfileExists();
+        await doInsert();
       }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Vehicle added'), backgroundColor: AppColors.success));
         Navigator.pop(context);
       }
     } catch (e) {
-      setState(() => _error = 'Save failed: ${_humanError(e.toString())}');
+      setState(() => _error = _humanError(e.toString()));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
   }
 
   String _humanError(String raw) {
-    if (raw.contains('PGRST205')) return 'Server not ready. Run supabase/schema.sql once in Supabase.';
-    if (raw.contains('foreign key') || raw.contains('23503')) return 'Profile sync issue. Try logging out and back in.';
-    if (raw.length > 140) return '${raw.substring(0, 140)}…';
+    final low = raw.toLowerCase();
+    if (low.contains('pgrst205') || low.contains('could not find the table')) {
+      return 'Server not ready. Admin must run supabase/schema.sql once.';
+    }
+    if (low.contains('foreign key') || low.contains('23503') || low.contains('violates')) {
+      return 'Profile sync issue. Please log out, sign in again, and retry.';
+    }
+    if (low.contains('socketexception') || low.contains('failed host lookup') || low.contains('network')) {
+      return 'No internet connection. Check your network and try again.';
+    }
+    if (raw.length > 160) return '${raw.substring(0, 160)}…';
     return raw;
   }
 
@@ -157,11 +175,11 @@ class _VehicleFormState extends State<_VehicleForm> {
         if (_error != null) Container(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: AppColors.danger.withOpacity(0.12), borderRadius: BorderRadius.circular(12)),
+          decoration: BoxDecoration(color: AppColors.danger.withOpacity(0.12), borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.danger.withOpacity(0.3))),
           child: Row(children: [
             const Icon(Icons.error_outline, color: AppColors.danger, size: 18),
             const SizedBox(width: 8),
-            Expanded(child: Text(_error!, style: const TextStyle(color: AppColors.danger, fontSize: 13))),
+            Expanded(child: Text(_error!, style: const TextStyle(color: AppColors.danger, fontSize: 13, fontWeight: FontWeight.w600))),
           ]),
         ),
         TextField(controller: _make, textCapitalization: TextCapitalization.words,

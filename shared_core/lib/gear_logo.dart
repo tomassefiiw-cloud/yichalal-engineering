@@ -3,9 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'theme.dart';
 
-/// Realistic mechanical gear (cog) with crisp trapezoidal teeth, a hub with
-/// 6 bolt holes, and a center axle. Two interlocked gears that rotate in
-/// opposite directions like a real gear pair.
+/// Realistic mechanical gear (cog).
+///
+/// Trapezoidal teeth with **softly rounded tips** (quadratic curves at the
+/// crown of each tooth + fillet curves at the root) for a true machined-cog
+/// look — not razor-sharp, not balloon-smooth. Hub ring with 6 bolt holes
+/// and a center axle hole. Two interlocked gears rotating in opposite
+/// directions like a real gear pair.
 class GearLogo extends StatefulWidget {
   final double size;
   final bool showText;
@@ -30,11 +34,9 @@ class _GearLogoState extends State<GearLogo> with TickerProviderStateMixin {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(mainAxisSize: MainAxisSize.min, children: [
       SizedBox(width: widget.size, height: widget.size, child: Stack(alignment: Alignment.center, children: [
-        // Big gear (background)
         AnimatedBuilder(animation: _a, builder: (_, __) =>
           Transform.rotate(angle: _a.value * 2 * pi,
             child: CustomPaint(size: Size.square(widget.size * 0.92), painter: _RealGear(primary, teeth: 12)))),
-        // Small gear (foreground, opposite rotation)
         Positioned(right: 0, bottom: 0,
           child: AnimatedBuilder(animation: _b, builder: (_, __) =>
             Transform.rotate(angle: -_b.value * 2 * pi,
@@ -57,8 +59,6 @@ class _GearLogoState extends State<GearLogo> with TickerProviderStateMixin {
   }
 }
 
-/// Authentic-looking gear: trapezoidal teeth (wider base, narrower tip),
-/// inner hub ring, 6 bolt holes, and a center axle hole. Reads as a real cog.
 class _RealGear extends CustomPainter {
   final Color color;
   final int teeth;
@@ -69,18 +69,21 @@ class _RealGear extends CustomPainter {
     final c = size.center(Offset.zero);
     final R = size.width * 0.50;          // tooth tip radius
     final r = R * 0.84;                    // tooth root radius
-    final hubOuter = R * 0.55;             // outer hub ring radius
-    final hubInner = R * 0.42;             // inner hub ring radius
-    final bolt = R * 0.06;                 // bolt-hole radius
+    final hubOuter = R * 0.55;
+    final hubInner = R * 0.42;
+    final bolt = R * 0.06;
     final boltRing = (hubInner + hubOuter) / 2;
-    final axle = R * 0.12;                 // center axle hole
+    final axle = R * 0.12;
 
-    // Tooth geometry: each tooth occupies (2π/teeth). Tooth has a top
-    // (between tipL and tipR) and a root gap between teeth.
     final step = 2 * pi / teeth;
-    final tipHalf = step * 0.18;          // half-angle at the tooth tip
-    final rootHalf = step * 0.30;          // half-angle at the tooth root
-    final flank = step * 0.5 - tipHalf;    // angle between root and tip
+    // Tooth angular geometry:
+    //   tip occupies (2 * tipHalf) at radius R
+    //   root gap occupies (2 * rootHalf) at radius r
+    final tipHalf = step * 0.16;
+    final rootHalf = step * 0.30;
+
+    Offset pt(double radius, double angle) =>
+        Offset(c.dx + radius * cos(angle), c.dy + radius * sin(angle));
 
     final path = Path();
     for (int i = 0; i < teeth; i++) {
@@ -89,55 +92,81 @@ class _RealGear extends CustomPainter {
       final tipStart  = centerAng - tipHalf;
       final tipEnd    = centerAng + tipHalf;
       final rootEnd   = centerAng + step * 0.5 - rootHalf;
-
-      final p1 = Offset(c.dx + r * cos(rootStart), c.dy + r * sin(rootStart));
-      final p2 = Offset(c.dx + R * cos(tipStart), c.dy + R * sin(tipStart));
-      final p3 = Offset(c.dx + R * cos(tipEnd), c.dy + R * sin(tipEnd));
-      final p4 = Offset(c.dx + r * cos(rootEnd), c.dy + r * sin(rootEnd));
-
-      if (i == 0) path.moveTo(p1.dx, p1.dy);
-      else path.lineTo(p1.dx, p1.dy);
-      path.lineTo(p2.dx, p2.dy);           // flank up
-      path.lineTo(p3.dx, p3.dy);           // tip
-      path.lineTo(p4.dx, p4.dy);           // flank down
-      // tiny arc along the root to the next tooth's start
       final nextRootStart = ((i + 1) % teeth) * step - pi / 2 - step * 0.5 + rootHalf;
-      final pNext = Offset(c.dx + r * cos(nextRootStart), c.dy + r * sin(nextRootStart));
-      path.lineTo(pNext.dx, pNext.dy);
+
+      // Tooth profile (per tooth):
+      //   p1: root start (left side of tooth base)
+      //   p2: tip start  (left tip corner) — slightly raised
+      //   crown: midpoint of tip arc (for the rounded top)
+      //   p3: tip end (right tip corner)
+      //   p4: root end (right side of tooth base)
+      final p1 = pt(r, rootStart);
+      final p2 = pt(R, tipStart);
+      final p3 = pt(R, tipEnd);
+      final p4 = pt(r, rootEnd);
+      // Crown control: a tiny bit ABOVE R so the quadratic curve produces
+      // a soft dome instead of a sharp peak.
+      final crownAng = centerAng;
+      final crownCtrl = pt(R * 1.04, crownAng);
+      // Fillet (concave round) between teeth: control point INSIDE the
+      // gear (smaller radius) so the curve dips into the root smoothly.
+      final filletCtrlMid = (rootEnd + nextRootStart) / 2;
+      final filletCtrl = pt(r * 0.94, filletCtrlMid);
+      final pNext = pt(r, nextRootStart);
+
+      if (i == 0) {
+        path.moveTo(p1.dx, p1.dy);
+      }
+      // Up the left flank (straight)
+      path.lineTo(p2.dx, p2.dy);
+      // Rounded crown over the tip
+      path.quadraticBezierTo(crownCtrl.dx, crownCtrl.dy, p3.dx, p3.dy);
+      // Down the right flank (straight)
+      path.lineTo(p4.dx, p4.dy);
+      // Soft fillet across the root to the next tooth
+      path.quadraticBezierTo(filletCtrl.dx, filletCtrl.dy, pNext.dx, pNext.dy);
     }
     path.close();
 
-    // Fill main body
+    // Drop shadow for depth (subtle)
+    canvas.save();
+    canvas.translate(0, R * 0.025);
+    canvas.drawPath(path, Paint()
+      ..color = Colors.black.withOpacity(0.12)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.5));
+    canvas.restore();
+
+    // Main gear body
     canvas.drawPath(path, Paint()..color = color..style = PaintingStyle.fill);
 
-    // Subtle inner highlight ring (depth)
+    // Subtle highlight along the inside of the root circle for depth
     canvas.drawCircle(c, r, Paint()
-      ..color = Colors.white.withOpacity(0.08)
+      ..color = Colors.white.withOpacity(0.10)
       ..style = PaintingStyle.stroke
       ..strokeWidth = R * 0.04);
 
-    // Inner hub ring (raised look)
-    canvas.drawCircle(c, hubOuter, Paint()..color = Colors.white.withOpacity(0.14));
+    // Raised hub ring (lighter tint)
+    canvas.drawCircle(c, hubOuter, Paint()..color = Colors.white.withOpacity(0.16));
     canvas.drawCircle(c, hubInner, Paint()..color = color);
     canvas.drawCircle(c, hubInner, Paint()
-      ..color = Colors.black.withOpacity(0.15)
+      ..color = Colors.black.withOpacity(0.18)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = R * 0.02);
+      ..strokeWidth = R * 0.022);
 
-    // 6 bolt holes on the hub ring
+    // 6 bolt holes on the hub ring (with darker interior, light rim)
     for (int i = 0; i < 6; i++) {
       final a = i * pi / 3;
       final p = Offset(c.dx + boltRing * cos(a), c.dy + boltRing * sin(a));
-      canvas.drawCircle(p, bolt, Paint()..color = Colors.white.withOpacity(0.85));
-      canvas.drawCircle(p, bolt * 0.55, Paint()..color = color.withOpacity(0.7));
+      canvas.drawCircle(p, bolt, Paint()..color = Colors.white.withOpacity(0.92));
+      canvas.drawCircle(p, bolt * 0.55, Paint()..color = color.withOpacity(0.55));
     }
 
     // Center axle hole
     canvas.drawCircle(c, axle, Paint()..color = Colors.white);
     canvas.drawCircle(c, axle, Paint()
-      ..color = Colors.black.withOpacity(0.25)
+      ..color = Colors.black.withOpacity(0.28)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = R * 0.015);
+      ..strokeWidth = R * 0.018);
   }
 
   @override
