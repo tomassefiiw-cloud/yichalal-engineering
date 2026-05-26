@@ -1,38 +1,33 @@
 # Yichalal Engineering — Downloads
 
-> **Latest stable: v1.0.4** (built 2026-05-26)
+> **Latest: v1.0.5** — building now via GitHub Actions.
+> When build finishes, this file is updated with fresh gofile links.
 
-## 📱 Customer App
-**https://gofile.io/d/vAqtQi**
-- File: `yichalal-customer-v1.0.4.apk`
-- Size: 55 MB
-- SHA-256: `ed28c6dc1bef95aa5f5d7a39ca5c26ca05dc2a94e92b3966515047a756556dda`
+## What v1.0.5 fixes
+- **Vehicle add** — 3-step profile recovery: checks profile by id, then by phone (adopts server's id if different), then recreates if missing, with retry-once on insert error. Plus clearer human-readable error messages.
+- **Realistic gear** — true machined-cog silhouette with cubic-bezier involute tooth flanks, rounded tip crown, concave root fillets between teeth, 6 bolt holes, raised hub ring, chamfered axle, radial gradient + drop shadow.
+- **Dark-mode text visibility** — AI chat bubbles, KYC pending banner (mechanic), "no vehicles" warning (customer) now use explicit theme-aware colors.
 
-## 🔧 Mechanic App
-**https://gofile.io/d/y4QrS1**
-- File: `yichalal-mechanic-v1.0.4.apk`
-- Size: 55 MB
-- SHA-256: `226c8076eae189d9cc4833380c6b95c88d6e6ddf5bfb6a327e8e6c2db01c8533`
-
-## 📦 Source code
-**https://gofile.io/d/2Etk7Q**
-- File: `yichalal-source-v1.0.4.zip`
-
-## What's fixed in v1.0.4
-- **Add vehicle bug**: customer can now add vehicles even if the Supabase profile row goes missing — proactive profile recreation + retry-once on insert failures, with clearer human-readable error messages.
-- **Dark-mode visibility**: AI Diagnosis text bubbles, KYC pending banner (mechanic), and the "no vehicles" warning (customer booking) now use explicit colors that stay readable in both light and dark themes.
-- **Realistic gear**: tooth tips are now softly rounded with quadratic curves and there are subtle root fillets between teeth — looks like a real machined cog, not razor-sharp.
-- **Same color palette** in both apps (orange primary, mint accent), same Poppins font, same dark/light theming.
+## Always-on functionality
+- Live Supabase cross-device sync (customer signs up → mechanic sees the booking)
+- Add vehicle with proactive profile recovery (no more "could not add to profile" errors)
+- AI diagnosis via OpenRouter (primary `openai/gpt-oss-120b:free`, backup `liquid/lfm-2.5-1.2b-instruct:free`, then local rule engine)
+- Real OpenStreetMap with simulated mechanic-to-customer movement + ETA
+- ETB-only payments (Telebirr/CBE/Amole/Cash/Wallet) with PDF invoices
+- In-app chat with newest-message-at-bottom ordering
+- Customer & mechanic wallets with 10% platform commission deduction
+- Live language switching (English / አማርኛ / Afaan Oromoo)
+- Light/Dark/System theme with adaptive text colors
+- Mechanic earnings analytics (7-day bar chart, 30-day line chart, by-service-type breakdown, all-time totals)
 
 ## How to install on Android
-1. Download the APK to your phone
+1. Download the APK below to your phone
 2. Settings → Apps → Special access → Install unknown apps → enable for your browser
 3. Tap the APK file → Install
 4. Open the app, enter any +251 phone, use OTP `123456`
 
-## Supabase setup (one-time, takes 1 minute)
-If you see "Server not initialised yet" banner at top of the app:
+## Supabase setup (one-time, 1 minute)
+If you see "Server not initialised yet" banner at the top:
 1. Open https://supabase.com/dashboard/project/mfnoyegiuuwthygprjua/sql/new
 2. Paste contents of `supabase/schema.sql` from the source zip
-3. Click **Run**
-4. Reopen the app — banner disappears, signup works.
+3. Click **Run** — banner disappears, signup works
