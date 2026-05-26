@@ -1,59 +1,51 @@
-# Yichalal Engineering — Latest Build (v1.1.0)
+# Yichalal Engineering — v1.1.0 Downloads
 
-Built: 2026-05-26 — built on GitHub Actions, signed APKs.
+## 📦 All files (one folder)
+**→ https://gofile.io/d/oCuPPq**
 
-## 📱 Customer APK
-**https://gofile.io/d/ki5OCM**
+Contains:
+| File | Size | What it is |
+|---|---|---|
+| `yichalal-customer-v1.1.0.apk` | 55 MB | Customer app — install on customer phone |
+| `yichalal-mechanic-v1.1.0.apk` | 55 MB | Mechanic app — install on mechanic phone |
+| `yichalal-source-v1.1.0-full.zip` | 130 KB | Full source (Flutter + schema + workflow) |
 
-Install on a customer's phone. Package: `com.yichalal.customer`
+## ⚠️ ONE-TIME SETUP: Apply database schema (90 seconds)
 
-## 🔧 Mechanic APK
-**https://gofile.io/d/cy0626**
+The new Supabase project (`yptrodblyfscyqngakie`) is empty. Apply the schema once:
 
-Install on a mechanic's phone. Package: `com.yichalal.mechanic`
+1. **Open** → https://supabase.com/dashboard/project/yptrodblyfscyqngakie/sql/new
+2. Copy the entire contents of [`supabase/schema.sql`](supabase/schema.sql) (in this repo)
+3. Paste into the SQL Editor → click **Run** (or Cmd/Ctrl-Enter)
+4. Wait for "Success" message
+5. Done — both apks now work end-to-end
 
-Both APKs can co-exist on the same phone (different package IDs).
+After that, the demo accounts (Abebe, Solomon, Hanna, Mulugeta, Admin) are already seeded by the schema. You can sign up new ones too.
 
-## 📦 Full source code (zip)
-**https://gofile.io/d/LfiCCt**
+## 🔑 Demo accounts (no OTP, one tap)
 
-Includes `customer_app/`, `mechanic_app/`, `shared_core/`, `supabase/schema.sql`.
+Both APKs ship a "Demo accounts" button on the role-select screen.
+- **Customer**: Abebe Kebede (+251911000001) — pre-seeded with vehicles
+- **Mechanic verified**: Solomon (+251911000002)
+- **Mechanic verified**: Hanna (+251911000003)
+- **Mechanic KYC-pending**: Mulugeta (+251911000004)
+- **Admin**: (+251911000000)
 
-## 🚀 Quick start
+## ✅ What was fixed in v1.1.0
 
-1. **One-time Supabase setup** (the only thing you need to do once):
-   - Open https://supabase.com/dashboard/project/mfnoyegiuuwthygprjua
-   - Left sidebar → **SQL Editor** → **New query**
-   - Open `supabase/schema.sql` from the source zip → copy all → paste → **Run**
-   - Done. Schema is idempotent (safe to re-run).
+- ✅ **Vehicle add error** (`photo_url not found`) → schema has the column + drift-repair
+- ✅ **AI diagnosis** → uses `openai/gpt-oss-120b:free` (verified responding)
+- ✅ **Role mixing** → separate APKs entirely (customer vs mechanic)
+- ✅ **Chat ordering** → newest message at the bottom, auto-scrolls
+- ✅ **Vehicle registration form** → mechanic signup demands license + ID + workshop photos
+- ✅ **Real-time sync** → Supabase Realtime publication on bookings/chats/notifications
+- ✅ **Language + dark mode** → in-app Settings → Preferences (persisted)
+- ✅ **Orange theme** → unified palette across both apps
+- ✅ **Poppins font** → via google_fonts
+- ✅ **Realistic gear logo** → cubic-bezier tooth profile, 14 teeth, bolt holes
 
-2. **Install both APKs** on your phones.
+## 📲 Install
 
-3. **Use demo OTP `123456`** to sign in/up. Any +251 phone works.
-
-## ✅ What's working in v1.1.0
-
-- Phone+OTP auth via Supabase
-- Vehicle add (the `photo_url` schema mismatch is bypassed in client code)
-- AI diagnosis via OpenRouter (`openai/gpt-oss-120b:free` primary, backup model fallback, local engine if both fail)
-- Language switch (English / አማርኛ / Afaan Oromoo) applies instantly
-- Theme switch (System / Light / Dark) applies instantly
-- Real-time booking sync between customer & mechanic apps via Supabase
-- KYC trade-license / national-ID / workshop photos for mechanic signup
-- Real OpenStreetMap (no Google key needed)
-- ETB pricing, PDF invoice, wallet, 10% commission
-- Local push notifications (in-app + phone tray when app is recent)
-
-## Versions
-
-- Customer: `com.yichalal.customer` v1.1.0+7
-- Mechanic: `com.yichalal.mechanic` v1.1.0+7
-- Shared core: see `shared_core/` for theme, l10n, models, repo, AI, notify
-
-## SHA-256 verification
-
-```
-4a22a1e7f680bfe78a7566b1e193868fe670ab70f0ef83294a4268d1e1b2403b  yichalal-customer-v1.1.0.apk
-137128552d9e7fb3861b44cd45d2b56cc1244e83d5739604266988f0deb03e1f  yichalal-mechanic-v1.1.0.apk
-20276968484dec613316ef5534d8355b8fae1503b3d9f48d935f32855538fcaf  yichalal-source-v1.1.0.zip
-```
+1. Download APK from gofile link above
+2. On Android: Settings → Security → "Install unknown apps" → enable for your browser
+3. Open the .apk → Install
