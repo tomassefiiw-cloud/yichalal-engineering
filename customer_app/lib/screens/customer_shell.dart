@@ -18,6 +18,28 @@ class CustomerShell extends StatefulWidget {
 
 class _CustomerShellState extends State<CustomerShell> {
   int _idx = 0;
+  bool _gpsAsked = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Request GPS once on first build → save to profile so distance is real.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _captureLocationOnce());
+  }
+
+  Future<void> _captureLocationOnce() async {
+    if (_gpsAsked) return;
+    _gpsAsked = true;
+    final user = context.read<Auth>().currentUser;
+    if (user == null) return;
+    final pos = await Geo.current();
+    if (pos == null) return;
+    try {
+      await Repo.instance.updateUserLocation(user.id, pos.latitude, pos.longitude);
+      await context.read<Auth>().refresh();
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);

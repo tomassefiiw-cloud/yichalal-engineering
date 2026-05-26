@@ -1,9 +1,11 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'theme.dart';
 
-/// Smooth realistic gear with rounded teeth, two stacked gears that rotate
-/// in opposite directions.
+/// Realistic mechanical gear (cog) with crisp trapezoidal teeth, a hub with
+/// 6 bolt holes, and a center axle. Two interlocked gears that rotate in
+/// opposite directions like a real gear pair.
 class GearLogo extends StatefulWidget {
   final double size;
   final bool showText;
@@ -15,107 +17,129 @@ class GearLogo extends StatefulWidget {
 }
 
 class _GearLogoState extends State<GearLogo> with TickerProviderStateMixin {
-  late final _a = AnimationController(vsync: this, duration: const Duration(seconds: 12))..repeat();
-  late final _b = AnimationController(vsync: this, duration: const Duration(seconds: 8))..repeat();
+  late final _a = AnimationController(vsync: this, duration: const Duration(seconds: 14))..repeat();
+  late final _b = AnimationController(vsync: this, duration: const Duration(seconds: 10))..repeat();
+
   @override
   void dispose() { _a.dispose(); _b.dispose(); super.dispose(); }
+
   @override
   Widget build(BuildContext context) {
     final primary = widget.primary ?? AppColors.orange;
-    final secondary = widget.secondary ?? AppColors.mint;
+    final secondary = widget.secondary ?? AppColors.orangeDark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(mainAxisSize: MainAxisSize.min, children: [
       SizedBox(width: widget.size, height: widget.size, child: Stack(alignment: Alignment.center, children: [
+        // Big gear (background)
         AnimatedBuilder(animation: _a, builder: (_, __) =>
-          Transform.rotate(angle: _a.value * 2 * pi, child: CustomPaint(size: Size.square(widget.size), painter: _SmoothGear(primary)))),
-        Positioned(right: widget.size * 0.02, bottom: widget.size * 0.02,
+          Transform.rotate(angle: _a.value * 2 * pi,
+            child: CustomPaint(size: Size.square(widget.size * 0.92), painter: _RealGear(primary, teeth: 12)))),
+        // Small gear (foreground, opposite rotation)
+        Positioned(right: 0, bottom: 0,
           child: AnimatedBuilder(animation: _b, builder: (_, __) =>
-            Transform.rotate(angle: -_b.value * 2 * pi, child: CustomPaint(size: Size.square(widget.size * 0.55), painter: _SmoothGear(secondary))))),
+            Transform.rotate(angle: -_b.value * 2 * pi,
+              child: CustomPaint(size: Size.square(widget.size * 0.50), painter: _RealGear(secondary, teeth: 10))))),
       ])),
       if (widget.showText) ...[
         const SizedBox(height: 14),
-        Text('Yichalal', style: TextStyle(fontSize: widget.size * 0.32, fontWeight: FontWeight.w800, letterSpacing: 0.5, color: AppColors.text)),
-        Text('ENGINEERING', style: TextStyle(fontSize: widget.size * 0.12, letterSpacing: widget.size * 0.05, fontWeight: FontWeight.w600, color: primary)),
+        Text('Yichalal',
+          style: GoogleFonts.poppins(
+            fontSize: widget.size * 0.32, fontWeight: FontWeight.w800, letterSpacing: 0.3,
+            color: isDark ? AppColors.darkText : AppColors.text,
+          )),
+        Text('ENGINEERING',
+          style: GoogleFonts.poppins(
+            fontSize: widget.size * 0.115, letterSpacing: widget.size * 0.045,
+            fontWeight: FontWeight.w600, color: primary,
+          )),
       ],
     ]);
   }
 }
 
-/// A real-looking gear: rounded teeth via cubic curves, polished hub.
-class _SmoothGear extends CustomPainter {
+/// Authentic-looking gear: trapezoidal teeth (wider base, narrower tip),
+/// inner hub ring, 6 bolt holes, and a center axle hole. Reads as a real cog.
+class _RealGear extends CustomPainter {
   final Color color;
-  _SmoothGear(this.color);
+  final int teeth;
+  _RealGear(this.color, {this.teeth = 12});
+
   @override
   void paint(Canvas canvas, Size size) {
     final c = size.center(Offset.zero);
-    final R = size.width * 0.5;
-    final r = R * 0.78;          // inner ring
-    final hub = R * 0.36;
-    final hole = R * 0.16;
-    const teeth = 10;
+    final R = size.width * 0.50;          // tooth tip radius
+    final r = R * 0.84;                    // tooth root radius
+    final hubOuter = R * 0.55;             // outer hub ring radius
+    final hubInner = R * 0.42;             // inner hub ring radius
+    final bolt = R * 0.06;                 // bolt-hole radius
+    final boltRing = (hubInner + hubOuter) / 2;
+    final axle = R * 0.12;                 // center axle hole
 
-    // Rounded teeth using sweeping arcs alternating between outer and inner radii.
+    // Tooth geometry: each tooth occupies (2π/teeth). Tooth has a top
+    // (between tipL and tipR) and a root gap between teeth.
+    final step = 2 * pi / teeth;
+    final tipHalf = step * 0.18;          // half-angle at the tooth tip
+    final rootHalf = step * 0.30;          // half-angle at the tooth root
+    final flank = step * 0.5 - tipHalf;    // angle between root and tip
+
     final path = Path();
-    final stepFrac = 1.0 / teeth;
-    final tipHalf = stepFrac * 0.22 * 2 * pi;      // narrow tip
-    final valleyHalf = stepFrac * 0.28 * 2 * pi;   // wider valley → softer look
     for (int i = 0; i < teeth; i++) {
-      final centerAng = (i / teeth) * 2 * pi - pi / 2;
-      // valley start
-      final vsAng = centerAng - (stepFrac * 0.5) * 2 * pi + valleyHalf;
-      // tip
-      final tsAng = centerAng - tipHalf;
-      final teAng = centerAng + tipHalf;
-      // valley end
-      final veAng = centerAng + (stepFrac * 0.5) * 2 * pi - valleyHalf;
+      final centerAng = i * step - pi / 2;
+      final rootStart = centerAng - step * 0.5 + rootHalf;
+      final tipStart  = centerAng - tipHalf;
+      final tipEnd    = centerAng + tipHalf;
+      final rootEnd   = centerAng + step * 0.5 - rootHalf;
 
-      final vs = Offset(c.dx + r * cos(vsAng), c.dy + r * sin(vsAng));
-      final ts = Offset(c.dx + R * cos(tsAng), c.dy + R * sin(tsAng));
-      final te = Offset(c.dx + R * cos(teAng), c.dy + R * sin(teAng));
-      final ve = Offset(c.dx + r * cos(veAng), c.dy + r * sin(veAng));
+      final p1 = Offset(c.dx + r * cos(rootStart), c.dy + r * sin(rootStart));
+      final p2 = Offset(c.dx + R * cos(tipStart), c.dy + R * sin(tipStart));
+      final p3 = Offset(c.dx + R * cos(tipEnd), c.dy + R * sin(tipEnd));
+      final p4 = Offset(c.dx + r * cos(rootEnd), c.dy + r * sin(rootEnd));
 
-      if (i == 0) path.moveTo(vs.dx, vs.dy);
-      else path.lineTo(vs.dx, vs.dy);
-
-      // ramp up to tooth tip (smooth)
-      path.quadraticBezierTo(
-        c.dx + ((R + r) / 2) * cos((vsAng + tsAng) / 2),
-        c.dy + ((R + r) / 2) * sin((vsAng + tsAng) / 2),
-        ts.dx, ts.dy);
-
-      // outer arc across the tooth top
-      path.arcToPoint(te, radius: Radius.circular(R), clockwise: true);
-
-      // ramp down from tooth tip
-      path.quadraticBezierTo(
-        c.dx + ((R + r) / 2) * cos((teAng + veAng) / 2),
-        c.dy + ((R + r) / 2) * sin((teAng + veAng) / 2),
-        ve.dx, ve.dy);
-
-      // arc along the valley to next tooth start
-      final nextVsAng = ((i + 1) / teeth) * 2 * pi - pi / 2 - (stepFrac * 0.5) * 2 * pi + valleyHalf;
-      final nextVs = Offset(c.dx + r * cos(nextVsAng), c.dy + r * sin(nextVsAng));
-      path.arcToPoint(nextVs, radius: Radius.circular(r), clockwise: true);
+      if (i == 0) path.moveTo(p1.dx, p1.dy);
+      else path.lineTo(p1.dx, p1.dy);
+      path.lineTo(p2.dx, p2.dy);           // flank up
+      path.lineTo(p3.dx, p3.dy);           // tip
+      path.lineTo(p4.dx, p4.dy);           // flank down
+      // tiny arc along the root to the next tooth's start
+      final nextRootStart = ((i + 1) % teeth) * step - pi / 2 - step * 0.5 + rootHalf;
+      final pNext = Offset(c.dx + r * cos(nextRootStart), c.dy + r * sin(nextRootStart));
+      path.lineTo(pNext.dx, pNext.dy);
     }
     path.close();
 
-    // Base + subtle highlight for depth.
+    // Fill main body
     canvas.drawPath(path, Paint()..color = color..style = PaintingStyle.fill);
 
-    // Polished hub
-    canvas.drawCircle(c, hub, Paint()..color = Colors.white.withOpacity(0.18));
-    canvas.drawCircle(c, hub * 0.85, Paint()..color = color.withOpacity(0.85));
-    canvas.drawCircle(c, hole, Paint()..color = Colors.white);
+    // Subtle inner highlight ring (depth)
+    canvas.drawCircle(c, r, Paint()
+      ..color = Colors.white.withOpacity(0.08)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = R * 0.04);
 
-    // Spokes (3 elegant arcs) so it reads as a gear, not a sun
-    final spoke = Paint()..color = Colors.white.withOpacity(0.55)..style = PaintingStyle.stroke..strokeWidth = R * 0.06..strokeCap = StrokeCap.round;
-    for (int i = 0; i < 3; i++) {
-      final a = i * 2 * pi / 3;
-      canvas.drawLine(
-        Offset(c.dx + hole * 1.2 * cos(a), c.dy + hole * 1.2 * sin(a)),
-        Offset(c.dx + hub * 0.78 * cos(a), c.dy + hub * 0.78 * sin(a)),
-        spoke);
+    // Inner hub ring (raised look)
+    canvas.drawCircle(c, hubOuter, Paint()..color = Colors.white.withOpacity(0.14));
+    canvas.drawCircle(c, hubInner, Paint()..color = color);
+    canvas.drawCircle(c, hubInner, Paint()
+      ..color = Colors.black.withOpacity(0.15)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = R * 0.02);
+
+    // 6 bolt holes on the hub ring
+    for (int i = 0; i < 6; i++) {
+      final a = i * pi / 3;
+      final p = Offset(c.dx + boltRing * cos(a), c.dy + boltRing * sin(a));
+      canvas.drawCircle(p, bolt, Paint()..color = Colors.white.withOpacity(0.85));
+      canvas.drawCircle(p, bolt * 0.55, Paint()..color = color.withOpacity(0.7));
     }
+
+    // Center axle hole
+    canvas.drawCircle(c, axle, Paint()..color = Colors.white);
+    canvas.drawCircle(c, axle, Paint()
+      ..color = Colors.black.withOpacity(0.25)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = R * 0.015);
   }
+
   @override
-  bool shouldRepaint(covariant _SmoothGear old) => old.color != color;
+  bool shouldRepaint(covariant _RealGear old) => old.color != color || old.teeth != teeth;
 }

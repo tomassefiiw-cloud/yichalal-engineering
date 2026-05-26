@@ -141,23 +141,32 @@ create table if not exists notifications (
 );
 create index if not exists notif_user_idx on notifications(user_id, ts desc);
 
--- ── PUBLIC ACCESS WITH PUBLISHABLE KEY ───────────────────────────────
+-- ── DISABLE ROW LEVEL SECURITY ───────────────────────────────────────
 -- The publishable key is what the mobile app ships with. To make all reads
 -- and writes work without a custom auth.users mapping, we disable RLS on
 -- these tables. (Safe for this app's design — every row carries its owner_id
 -- and the app's UI enforces who-can-do-what.)
-alter table profiles disable row level security;
-alter table vehicles disable row level security;
-alter table bookings disable row level security;
-alter table chats disable row level security;
-alter table wallet_txns disable row level security;
-alter table service_records disable row level security;
-alter table diagnoses disable row level security;
-alter table inventory disable row level security;
-alter table notifications disable row level security;
+alter table profiles            disable row level security;
+alter table vehicles            disable row level security;
+alter table bookings            disable row level security;
+alter table chats               disable row level security;
+alter table wallet_txns         disable row level security;
+alter table service_records     disable row level security;
+alter table diagnoses           disable row level security;
+alter table inventory           disable row level security;
+alter table notifications       disable row level security;
+
+-- ── EXPLICIT GRANTS to the anon/publishable role ─────────────────────
+-- Without these some Supabase projects (depending on version) still block
+-- writes from the publishable key. Granting all on the tables makes the
+-- mobile app's CRUD operations work reliably.
+grant usage on schema public to anon, authenticated;
+grant all on profiles, vehicles, bookings, chats, wallet_txns,
+            service_records, diagnoses, inventory, notifications
+       to anon, authenticated;
+grant usage, select on all sequences in schema public to anon, authenticated;
 
 -- ── REALTIME (cross-device live updates) ─────────────────────────────
--- These are wrapped in DO blocks so re-running the file doesn't error.
 do $$
 begin
   if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'bookings') then

@@ -10,9 +10,15 @@ class JobsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final me = context.watch<Auth>().currentUser!;
     return DefaultTabController(length: 2, child: Scaffold(
-      appBar: AppBar(automaticallyImplyLeading: false, title: const Text('Jobs'),
-        bottom: const TabBar(indicatorColor: AppColors.mintDark, labelColor: AppColors.mintDark,
-          tabs: [Tab(text: 'Active'), Tab(text: 'History')])),
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: const Text('Jobs'),
+        bottom: const TabBar(
+          indicatorColor: AppColors.orange,
+          labelColor: AppColors.orange,
+          tabs: [Tab(text: 'Active'), Tab(text: 'History')],
+        ),
+      ),
       body: StreamBuilder<List<Booking>>(
         stream: Repo.instance.bookingsForMechanic(me.id),
         builder: (_, snap) {
@@ -28,7 +34,7 @@ class JobsTab extends StatelessWidget {
   Widget _list(BuildContext c, List<Booking> bs) {
     if (bs.isEmpty) return const Center(child: Text('Nothing here'));
     return ListView(padding: const EdgeInsets.all(12), children: bs.map((b) => Card(child: ListTile(
-      leading: const Icon(Icons.assignment_outlined),
+      leading: const Icon(Icons.assignment_outlined, color: AppColors.orange),
       title: Text(labelOf(b.serviceType), style: const TextStyle(fontWeight: FontWeight.w600)),
       subtitle: Text('${Fmt.dateTime(b.scheduledAt)}\n${b.address}'),
       isThreeLine: true,

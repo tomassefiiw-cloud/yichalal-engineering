@@ -62,26 +62,14 @@ class _LangScope extends InheritedWidget {
   bool updateShouldNotify(_LangScope old) => old.s.lang != s.lang;
 }
 
-class LangProvider extends StatefulWidget {
-  final AppLang initial;
-  final Widget Function(BuildContext, AppLang, void Function(AppLang)) builder;
-  const LangProvider({super.key, required this.initial, required this.builder});
-  @override
-  State<LangProvider> createState() => _LangProviderState();
-}
-
-class _LangProviderState extends State<LangProvider> {
-  late AppLang _lang = widget.initial;
+/// Stateless lang scope — pure function of `lang` so any external change
+/// (e.g. Preferences.notifyListeners()) rebuilds the whole subtree with
+/// new translations immediately. No internal state to get out of sync.
+class LangProvider extends StatelessWidget {
+  final AppLang lang;
+  final Widget child;
+  const LangProvider({super.key, required this.lang, required this.child});
 
   @override
-  void didUpdateWidget(covariant LangProvider oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.initial != widget.initial) {
-      _lang = widget.initial;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) =>
-      _LangScope(s: S(_lang), child: widget.builder(context, _lang, (l) => setState(() => _lang = l)));
+  Widget build(BuildContext context) => _LangScope(s: S(lang), child: child);
 }

@@ -20,7 +20,7 @@ class DashboardTab extends StatelessWidget {
       Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [AppColors.mintDark, AppColors.mint], begin: Alignment.topLeft, end: Alignment.bottomRight),
+          gradient: const LinearGradient(colors: [AppColors.orange, AppColors.orangeDark], begin: Alignment.topLeft, end: Alignment.bottomRight),
           borderRadius: BorderRadius.circular(20)),
         child: Row(children: [
           const CircleAvatar(radius: 28, backgroundColor: Colors.white24, child: Icon(Icons.handyman_rounded, color: Colors.white)),
@@ -50,18 +50,18 @@ class DashboardTab extends StatelessWidget {
           final done = list.where((b) => b.status == BookingStatus.completed && b.updatedAt.day == DateTime.now().day).length;
           return Column(children: [
             Row(children: [
-              _stat('Pending', pending.toString(), Icons.hourglass_top_rounded, AppColors.warn),
+              _stat(context, 'Pending', pending.toString(), Icons.hourglass_top_rounded, AppColors.warn),
               const SizedBox(width: 8),
-              _stat('Today', today.toString(), Icons.event, AppColors.mint),
+              _stat(context, 'Today', today.toString(), Icons.event, AppColors.orange),
               const SizedBox(width: 8),
-              _stat('Done', done.toString(), Icons.task_alt_rounded, AppColors.success),
+              _stat(context, 'Done', done.toString(), Icons.task_alt_rounded, AppColors.success),
             ]),
             const SizedBox(height: 18),
             const Align(alignment: Alignment.centerLeft, child: Text('Recent activity', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15))),
             const SizedBox(height: 6),
             if (list.isEmpty) const Card(child: ListTile(title: Text('No jobs yet — incoming requests will appear in the Requests tab.')))
             else ...list.take(5).map((b) => Card(child: ListTile(
-              leading: const Icon(Icons.assignment_outlined, color: AppColors.mintDark),
+              leading: const Icon(Icons.assignment_outlined, color: AppColors.orange),
               title: Text(labelOf(b.serviceType), style: const TextStyle(fontWeight: FontWeight.w600)),
               subtitle: Text('${Fmt.dateTime(b.scheduledAt)} • ${b.status.name.toUpperCase()}'),
               trailing: Text(b.total > 0 ? Fmt.etb(b.total) : '—', style: const TextStyle(fontWeight: FontWeight.w700)),
@@ -73,14 +73,14 @@ class DashboardTab extends StatelessWidget {
     ]);
   }
 
-  Widget _stat(String label, String value, IconData ic, Color color) => Expanded(child: Card(child: Padding(
+  Widget _stat(BuildContext context, String label, String value, IconData ic, Color color) => Expanded(child: Card(child: Padding(
     padding: const EdgeInsets.all(14),
     child: Column(children: [
       Container(width: 40, height: 40, decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
         child: Icon(ic, color: color, size: 22)),
       const SizedBox(height: 8),
       Text(value, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 22)),
-      Text(label, style: const TextStyle(color: AppColors.textMute, fontSize: 11)),
+      Text(label, style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color, fontSize: 11)),
     ]),
   )));
 }

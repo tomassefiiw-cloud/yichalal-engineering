@@ -101,15 +101,15 @@ class BookingDetailScreen extends StatelessWidget {
         options: MapOptions(initialCenter: LatLng((pos.latitude + dest.latitude) / 2, (pos.longitude + dest.longitude) / 2), initialZoom: 13),
         children: [
           TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'com.yichalal.mechanic'),
-          PolylineLayer(polylines: [Polyline(points: [pos, dest], strokeWidth: 4, color: AppColors.mintDark)]),
+          PolylineLayer(polylines: [Polyline(points: [pos, dest], strokeWidth: 4, color: AppColors.orange)]),
           MarkerLayer(markers: [
-            Marker(point: pos, width: 40, height: 40, child: const Icon(Icons.handyman_rounded, color: AppColors.mintDark, size: 32)),
+            Marker(point: pos, width: 40, height: 40, child: const Icon(Icons.handyman_rounded, color: AppColors.orange, size: 32)),
             Marker(point: dest, width: 40, height: 40, child: const Icon(Icons.location_pin, color: AppColors.danger, size: 38)),
           ]),
         ],
       )),
       Padding(padding: const EdgeInsets.all(14), child: Row(children: [
-        const Icon(Icons.route_outlined, color: AppColors.mintDark),
+        const Icon(Icons.route_outlined, color: AppColors.orange),
         const SizedBox(width: 6),
         Text('Distance: ${Fmt.dist(dist)}', style: const TextStyle(fontWeight: FontWeight.w700)),
         const Spacer(),
@@ -148,7 +148,7 @@ class BookingDetailScreen extends StatelessWidget {
         () => update(BookingStatus.enroute, 'Mechanic en route', 'Track in the app'))];
     }
     if (b.status == BookingStatus.enroute) {
-      return [big('Arrived — Start service', Icons.build_rounded, AppColors.mintDark,
+      return [big('Arrived — Start service', Icons.build_rounded, AppColors.orange,
         () => update(BookingStatus.inprogress, 'Service started', 'Your mechanic is working on it'))];
     }
     if (b.status == BookingStatus.inprogress) {
@@ -184,7 +184,7 @@ class BookingDetailScreen extends StatelessWidget {
   Color _statusColor(BookingStatus s) {
     switch (s) {
       case BookingStatus.pending: return AppColors.warn;
-      case BookingStatus.accepted: case BookingStatus.enroute: case BookingStatus.inprogress: return AppColors.mintDark;
+      case BookingStatus.accepted: case BookingStatus.enroute: case BookingStatus.inprogress: return AppColors.orange;
       case BookingStatus.completed: return AppColors.success;
       case BookingStatus.cancelled: case BookingStatus.declined: return AppColors.danger;
     }

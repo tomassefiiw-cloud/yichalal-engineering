@@ -15,7 +15,7 @@ class InventoryTab extends StatelessWidget {
           final list = snap.data ?? [];
           if (list.isEmpty) return const Center(child: Text('Tap + to add your first part'));
           return ListView(padding: const EdgeInsets.all(12), children: list.map((i) => Card(child: ListTile(
-            leading: const Icon(Icons.settings_input_component_rounded, color: AppColors.mintDark),
+            leading: const Icon(Icons.settings_input_component_rounded, color: AppColors.orange),
             title: Text(i.name, style: const TextStyle(fontWeight: FontWeight.w600)),
             subtitle: Text('Qty: ${i.quantity}'),
             trailing: Text(Fmt.etb(i.price), style: const TextStyle(fontWeight: FontWeight.w700)),

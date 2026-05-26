@@ -35,25 +35,23 @@ class MechanicApp extends StatelessWidget {
     final auth = context.watch<Auth>();
     final prefs = context.watch<Preferences>();
     return LangProvider(
-      initial: prefs.lang,
-      builder: (context, lang, setLang) {
-        return MaterialApp(
-          title: 'Yichalal — Mechanic',
-          debugShowCheckedModeBanner: false,
-          // Mechanic app uses the same orange palette as customer for unified branding.
-          theme: AppTheme.light(),
-          darkTheme: AppTheme.dark(),
-          themeMode: prefs.themeMode,
-          builder: (context, child) =>
-              _HealthBanner(error: healthError, child: child ?? const SizedBox()),
-          home: KeyedSubtree(
-            key: ValueKey('${auth.currentUser?.id ?? 'guest'}-mechanic-${prefs.lang.name}'),
-            child: auth.currentUser == null
-                ? const AuthScreen(role: UserRole.mechanic)
-                : const MechanicShell(),
-          ),
-        );
-      },
+      lang: prefs.lang,
+      child: MaterialApp(
+        title: 'Yichalal — Mechanic',
+        debugShowCheckedModeBanner: false,
+        // Unified orange palette across both apps.
+        theme: AppTheme.light(),
+        darkTheme: AppTheme.dark(),
+        themeMode: prefs.themeMode,
+        builder: (context, child) =>
+            _HealthBanner(error: healthError, child: child ?? const SizedBox()),
+        home: KeyedSubtree(
+          key: ValueKey('${auth.currentUser?.id ?? 'guest'}-mechanic'),
+          child: auth.currentUser == null
+              ? const AuthScreen(role: UserRole.mechanic)
+              : const MechanicShell(),
+        ),
+      ),
     );
   }
 }

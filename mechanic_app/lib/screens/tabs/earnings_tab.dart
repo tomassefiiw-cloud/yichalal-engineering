@@ -151,7 +151,7 @@ class EarningsTab extends StatelessWidget {
   Color _color(ServiceType t) {
     switch (t) {
       case ServiceType.emergency_roadside: return AppColors.danger;
-      case ServiceType.at_home: return AppColors.mint;
+      case ServiceType.at_home: return AppColors.orangeLight;
       case ServiceType.workshop: return AppColors.orange;
       case ServiceType.scheduled_maintenance: return AppColors.steel;
       case ServiceType.detailing: return Colors.deepPurple;

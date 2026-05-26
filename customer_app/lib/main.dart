@@ -35,24 +35,22 @@ class CustomerApp extends StatelessWidget {
     final auth = context.watch<Auth>();
     final prefs = context.watch<Preferences>();
     return LangProvider(
-      initial: prefs.lang,
-      builder: (context, lang, setLang) {
-        return MaterialApp(
-          title: 'Yichalal — Customer',
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.light(),
-          darkTheme: AppTheme.dark(),
-          themeMode: prefs.themeMode,
-          builder: (context, child) =>
-              _HealthBanner(error: healthError, child: child ?? const SizedBox()),
-          home: KeyedSubtree(
-            key: ValueKey('${auth.currentUser?.id ?? 'guest'}-customer-${prefs.lang.name}'),
-            child: auth.currentUser == null
-                ? const AuthScreen(role: UserRole.customer)
-                : const CustomerShell(),
-          ),
-        );
-      },
+      lang: prefs.lang,
+      child: MaterialApp(
+        title: 'Yichalal — Customer',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light(),
+        darkTheme: AppTheme.dark(),
+        themeMode: prefs.themeMode,
+        builder: (context, child) =>
+            _HealthBanner(error: healthError, child: child ?? const SizedBox()),
+        home: KeyedSubtree(
+          key: ValueKey('${auth.currentUser?.id ?? 'guest'}-customer'),
+          child: auth.currentUser == null
+              ? const AuthScreen(role: UserRole.customer)
+              : const CustomerShell(),
+        ),
+      ),
     );
   }
 }
