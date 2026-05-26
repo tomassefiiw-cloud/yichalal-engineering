@@ -64,3 +64,5 @@ cd ../mechanic_app && flutter pub get && flutter build apk --release
 - **Cross-device wake-from-sleep push**: requires an FCM project. Local notifications work in foreground/background.
 
 <!-- build trigger: 2026-05-26T10:46:52Z -->
+
+<!-- build trigger: 1779797218 -->
