@@ -36,7 +36,7 @@ class EarningsTab extends StatelessWidget {
         return ListView(padding: const EdgeInsets.all(16), children: [
           // hero balance
           Container(padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(gradient: const LinearGradient(colors: [AppColors.mintDark, AppColors.mint]), borderRadius: BorderRadius.circular(20)),
+            decoration: BoxDecoration(gradient: const LinearGradient(colors: [AppColors.orange, AppColors.orangeDark]), borderRadius: BorderRadius.circular(20)),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const Text('Available balance', style: TextStyle(color: Colors.white70)),
               Text(Fmt.etb(me.walletBalance), style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w800)),
@@ -47,15 +47,15 @@ class EarningsTab extends StatelessWidget {
 
           // top stats grid
           Row(children: [
-            _stat('This week', Fmt.etb(total7), Icons.calendar_today_outlined, AppColors.orange),
+            _stat(context, 'This week', Fmt.etb(total7), Icons.calendar_today_outlined, AppColors.orange),
             const SizedBox(width: 8),
-            _stat('All-time', Fmt.etb(totalAll), Icons.account_balance_wallet_outlined, AppColors.mintDark),
+            _stat(context, 'All-time', Fmt.etb(totalAll), Icons.account_balance_wallet_outlined, AppColors.orangeDark),
           ]),
           const SizedBox(height: 8),
           Row(children: [
-            _stat('Avg/job', Fmt.etb(avg.round()), Icons.show_chart, AppColors.success),
+            _stat(context, 'Avg/job', Fmt.etb(avg.round()), Icons.show_chart, AppColors.success),
             const SizedBox(width: 8),
-            _stat('Jobs done', completed.length.toString(), Icons.task_alt_rounded, AppColors.warn),
+            _stat(context, 'Jobs done', completed.length.toString(), Icons.task_alt_rounded, AppColors.warn),
           ]),
 
           const SizedBox(height: 14),
@@ -77,7 +77,7 @@ class EarningsTab extends StatelessWidget {
                 })),
               ),
               barGroups: List.generate(7, (i) => BarChartGroupData(x: i, barRods: [
-                BarChartRodData(toY: last7[i], color: AppColors.mintDark, width: 18,
+                BarChartRodData(toY: last7[i], color: AppColors.orange, width: 18,
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(6))),
               ])),
             ))),
@@ -134,14 +134,14 @@ class EarningsTab extends StatelessWidget {
     );
   }
 
-  Widget _stat(String label, String value, IconData ic, Color color) => Expanded(child: Card(child: Padding(
+  Widget _stat(BuildContext context, String label, String value, IconData ic, Color color) => Expanded(child: Card(child: Padding(
     padding: const EdgeInsets.all(14),
     child: Row(children: [
       Container(width: 40, height: 40, decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
         child: Icon(ic, color: color, size: 22)),
       const SizedBox(width: 10),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textMute)),
+        Text(label, style: TextStyle(fontSize: 11, color: Theme.of(context).textTheme.bodySmall?.color)),
         const SizedBox(height: 2),
         Text(value, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15), maxLines: 1, overflow: TextOverflow.ellipsis),
       ])),

@@ -170,7 +170,7 @@ class _DiagnoseTabState extends State<DiagnoseTab> {
             bottomRight: Radius.circular(m.fromUser ? 4 : 18),
           ),
         ),
-        child: SelectableText(m.text, style: TextStyle(color: m.fromUser ? Colors.white : AppColors.text, fontSize: 14, height: 1.4)),
+        child: SelectableText(m.text, style: TextStyle(color: m.fromUser ? Colors.white : Theme.of(context).textTheme.bodyMedium?.color ?? AppColors.text, fontSize: 14, height: 1.4)),
       ),
     );
   }

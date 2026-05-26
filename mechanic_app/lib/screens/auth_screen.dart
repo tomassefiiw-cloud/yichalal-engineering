@@ -18,12 +18,12 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     final isCustomer = widget.role == UserRole.customer;
-    final primary = isCustomer ? AppColors.orange : AppColors.mintDark;
+    final primary = AppColors.orange;
     return Scaffold(
       body: SafeArea(
         child: Column(children: [
           const SizedBox(height: 24),
-          GearLogo(size: 90, primary: primary, secondary: isCustomer ? AppColors.mint : AppColors.orange),
+          GearLogo(size: 90, primary: primary, secondary: AppColors.orangeDark),
           const SizedBox(height: 8),
           Text(isCustomer ? 'Customer' : 'Mechanic',
               style: TextStyle(color: AppColors.textMute, fontSize: 13, letterSpacing: 1)),

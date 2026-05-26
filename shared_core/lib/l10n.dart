@@ -44,6 +44,14 @@ class S {
     'describe_problem': ['Describe the problem', 'ችግሩን ግለፅ', 'Rakkoo ibsi'],
     'create_booking': ['Create Booking', 'ቀጠሮ ፍጠር', 'Beellama uumi'],
     'pick_date_time': ['Pick date & time', 'ቀን እና ሰዓት ምረጥ', 'Guyyaa fili'],
+    'save_changes': ['Save changes', 'ለውጦች አስቀምጥ', 'Jijjiirama olkaa\'i'],
+    'preferences': ['Preferences', 'ምርጫዎች', 'Filannoo'],
+    'about': ['About', 'ስለ', 'Waa\'ee'],
+    'notifications': ['Notifications', 'ማሳወቂያዎች', 'Beeksisa'],
+    'recent_bookings': ['Recent bookings', 'የቅርብ ጊዜ ቀጠሮዎች', 'Beellama dhihoo'],
+    'verified_mechanics': ['Verified mechanics', 'የተረጋገጡ ሜካኒኮች', 'Meekaanikii mirkanaa\'e'],
+    'quick_service': ['Quick service', 'ፈጣን አገልግሎት', 'Tajaajila ariifataa'],
+    'no_bookings': ['No bookings yet', 'እስካሁን ቀጠሮ የለም', 'Beellama hin jiru'],
   };
 }
 
@@ -64,6 +72,15 @@ class LangProvider extends StatefulWidget {
 
 class _LangProviderState extends State<LangProvider> {
   late AppLang _lang = widget.initial;
+
+  @override
+  void didUpdateWidget(covariant LangProvider oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initial != widget.initial) {
+      _lang = widget.initial;
+    }
+  }
+
   @override
   Widget build(BuildContext context) =>
       _LangScope(s: S(_lang), child: widget.builder(context, _lang, (l) => setState(() => _lang = l)));

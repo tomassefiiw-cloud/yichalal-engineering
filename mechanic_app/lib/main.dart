@@ -14,36 +14,40 @@ Future<void> main() async {
   await auth.bootstrap();
   await Notify.init();
   if (auth.currentUser != null) await Notify.watchUser(auth.currentUser!.id);
+  final prefs = Preferences();
+  await prefs.load();
   final healthErr = await Repo.instance.healthCheck();
-  runApp(ChangeNotifierProvider.value(value: auth, child: MechanicApp(healthError: healthErr)));
+  runApp(MultiProvider(
+    providers: [
+      ChangeNotifierProvider.value(value: auth),
+      ChangeNotifierProvider.value(value: prefs),
+    ],
+    child: MechanicApp(healthError: healthErr),
+  ));
 }
 
-class MechanicApp extends StatefulWidget {
+class MechanicApp extends StatelessWidget {
   final String? healthError;
   const MechanicApp({super.key, this.healthError});
-  @override
-  State<MechanicApp> createState() => _MechanicAppState();
-}
-
-class _MechanicAppState extends State<MechanicApp> {
-  AppLang _lang = AppLang.en;
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<Auth>();
+    final prefs = context.watch<Preferences>();
     return LangProvider(
-      initial: _lang,
+      initial: prefs.lang,
       builder: (context, lang, setLang) {
         return MaterialApp(
           title: 'Yichalal — Mechanic',
           debugShowCheckedModeBanner: false,
+          // Mechanic app uses the same orange palette as customer for unified branding.
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
-          themeMode: ThemeMode.system,
+          themeMode: prefs.themeMode,
           builder: (context, child) =>
-              _HealthBanner(error: widget.healthError, child: child ?? const SizedBox()),
+              _HealthBanner(error: healthError, child: child ?? const SizedBox()),
           home: KeyedSubtree(
-            key: ValueKey('${auth.currentUser?.id ?? 'guest'}-mechanic'),
+            key: ValueKey('${auth.currentUser?.id ?? 'guest'}-mechanic-${prefs.lang.name}'),
             child: auth.currentUser == null
                 ? const AuthScreen(role: UserRole.mechanic)
                 : const MechanicShell(),
@@ -75,10 +79,7 @@ class _HealthBanner extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(error!,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600)),
+                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
               ),
             ]),
           ),

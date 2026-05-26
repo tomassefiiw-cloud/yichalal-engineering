@@ -68,7 +68,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       bottomRight: Radius.circular(mine ? 4 : 16),
                     ),
                   ),
-                  child: SelectableText(m.text, style: TextStyle(color: mine ? Colors.white : AppColors.text, fontSize: 14, height: 1.35)),
+                  child: SelectableText(m.text, style: TextStyle(color: mine ? Colors.white : Theme.of(context).textTheme.bodyMedium?.color ?? AppColors.text, fontSize: 14, height: 1.35)),
                 ));
               },
             );
