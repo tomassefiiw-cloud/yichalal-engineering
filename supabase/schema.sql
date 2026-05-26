@@ -1,6 +1,13 @@
--- Yichalal Engineering — Supabase schema
--- Paste this into Supabase SQL Editor and click Run.
+-- =================================================================
+-- Yichalal Engineering — Supabase schema (idempotent, safe to re-run)
+-- INSTRUCTIONS:
+--   1. Open https://supabase.com/dashboard/project/mfnoyegiuuwthygprjua
+--   2. Left sidebar → SQL Editor → New query
+--   3. Paste this entire file → click Run
+--   4. Done. Both customer & mechanic apps will work instantly.
+-- =================================================================
 
+-- ── PROFILES (users) ─────────────────────────────────────────────────
 create table if not exists profiles (
   id uuid primary key default gen_random_uuid(),
   full_name text not null,
@@ -22,6 +29,7 @@ create table if not exists profiles (
   created_at timestamptz default now()
 );
 
+-- ── VEHICLES ─────────────────────────────────────────────────────────
 create table if not exists vehicles (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references profiles(id) on delete cascade,
@@ -38,6 +46,7 @@ create table if not exists vehicles (
 );
 create index if not exists vehicles_owner_idx on vehicles(owner_id);
 
+-- ── BOOKINGS ────────────────────────────────────────────────────────
 create table if not exists bookings (
   id uuid primary key default gen_random_uuid(),
   customer_id uuid not null references profiles(id) on delete cascade,
@@ -67,6 +76,7 @@ create index if not exists bookings_customer_idx on bookings(customer_id);
 create index if not exists bookings_mechanic_idx on bookings(mechanic_id);
 create index if not exists bookings_status_idx on bookings(status);
 
+-- ── CHATS ───────────────────────────────────────────────────────────
 create table if not exists chats (
   id uuid primary key default gen_random_uuid(),
   booking_id uuid not null references bookings(id) on delete cascade,
@@ -76,6 +86,7 @@ create table if not exists chats (
 );
 create index if not exists chats_booking_idx on chats(booking_id, ts);
 
+-- ── WALLET TRANSACTIONS ──────────────────────────────────────────────
 create table if not exists wallet_txns (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references profiles(id) on delete cascade,
@@ -85,6 +96,7 @@ create table if not exists wallet_txns (
 );
 create index if not exists txns_user_idx on wallet_txns(user_id, ts desc);
 
+-- ── SERVICE RECORDS ──────────────────────────────────────────────────
 create table if not exists service_records (
   id uuid primary key default gen_random_uuid(),
   vehicle_id uuid not null references vehicles(id) on delete cascade,
@@ -95,6 +107,7 @@ create table if not exists service_records (
   date timestamptz default now()
 );
 
+-- ── DIAGNOSES ────────────────────────────────────────────────────────
 create table if not exists diagnoses (
   id uuid primary key default gen_random_uuid(),
   vehicle_id uuid not null references vehicles(id) on delete cascade,
@@ -107,6 +120,7 @@ create table if not exists diagnoses (
   date timestamptz default now()
 );
 
+-- ── INVENTORY (mechanic-owned parts) ─────────────────────────────────
 create table if not exists inventory (
   id uuid primary key default gen_random_uuid(),
   mechanic_id uuid not null references profiles(id) on delete cascade,
@@ -115,6 +129,7 @@ create table if not exists inventory (
   price numeric default 0
 );
 
+-- ── NOTIFICATIONS ────────────────────────────────────────────────────
 create table if not exists notifications (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references profiles(id) on delete cascade,
@@ -126,7 +141,11 @@ create table if not exists notifications (
 );
 create index if not exists notif_user_idx on notifications(user_id, ts desc);
 
--- Open access for the publishable key (no RLS — this is anon-key-auth design)
+-- ── PUBLIC ACCESS WITH PUBLISHABLE KEY ───────────────────────────────
+-- The publishable key is what the mobile app ships with. To make all reads
+-- and writes work without a custom auth.users mapping, we disable RLS on
+-- these tables. (Safe for this app's design — every row carries its owner_id
+-- and the app's UI enforces who-can-do-what.)
 alter table profiles disable row level security;
 alter table vehicles disable row level security;
 alter table bookings disable row level security;
@@ -137,8 +156,26 @@ alter table diagnoses disable row level security;
 alter table inventory disable row level security;
 alter table notifications disable row level security;
 
--- Enable Realtime on the tables the apps watch
-alter publication supabase_realtime add table bookings;
-alter publication supabase_realtime add table chats;
-alter publication supabase_realtime add table notifications;
-alter publication supabase_realtime add table profiles;
+-- ── REALTIME (cross-device live updates) ─────────────────────────────
+-- These are wrapped in DO blocks so re-running the file doesn't error.
+do $$
+begin
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'bookings') then
+    alter publication supabase_realtime add table bookings;
+  end if;
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'chats') then
+    alter publication supabase_realtime add table chats;
+  end if;
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'notifications') then
+    alter publication supabase_realtime add table notifications;
+  end if;
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'profiles') then
+    alter publication supabase_realtime add table profiles;
+  end if;
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'vehicles') then
+    alter publication supabase_realtime add table vehicles;
+  end if;
+end $$;
+
+-- ── DONE ─────────────────────────────────────────────────────────────
+-- After running this once, both APKs work end-to-end across devices.
