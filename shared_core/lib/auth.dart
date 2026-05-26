@@ -19,9 +19,8 @@ class Auth extends ChangeNotifier {
     if (id != null) {
       try {
         currentUser = await Repo.instance.findUserById(id);
-        // If user not found (deleted from DB), clear stale session so the
-        // user lands on the auth screen instead of seeing FK errors later.
         if (currentUser == null) {
+          // session id is stale — clear so user lands on auth screen
           await prefs.remove(_prefId);
         }
       } catch (_) {
@@ -31,8 +30,8 @@ class Auth extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Verify OTP — returns matching user OR null if no account on this phone.
-  /// Throws if the user exists but with a DIFFERENT role (cross-role login attempt).
+  /// Verify OTP. Returns matching user OR null if no account on this phone.
+  /// Throws if the user exists but with a DIFFERENT role.
   Future<AppUser?> verifyOtpAndLogin({required String phone, required String code, required UserRole expectedRole}) async {
     if (code.trim() != '123456') throw 'Invalid OTP. Use 123456 for demo.';
     final AppUser? u;
@@ -51,12 +50,11 @@ class Auth extends ChangeNotifier {
     return u;
   }
 
-  /// Create an account (role-locked to whichever app is running).
+  /// Create an account. Role-locked to whichever app is running.
   ///
-  /// The local session is only saved AFTER Supabase confirms the row is
-  /// actually persisted. If the insert silently fails, we throw instead of
-  /// leaving a phantom session that would later cause FK errors when the
-  /// user tries to add a vehicle / book a service.
+  /// Persists the profile to Supabase AND verifies the row landed before
+  /// saving the local session — so a phantom session that would later cause
+  /// FK errors when adding a vehicle is impossible.
   Future<AppUser> register({
     required String phone, required String fullName, String? email, required String address,
     required UserRole role, required List<EngineType> engineTypes,
@@ -64,9 +62,12 @@ class Auth extends ChangeNotifier {
     List<String> workshopPhotoUrls = const [],
   }) async {
     try {
+      // If a profile already exists for this phone, just resume that session.
       final existing = await Repo.instance.findUserByPhone(phone);
       if (existing != null) {
-        if (existing.role != role) throw 'This phone is already registered as ${existing.role.name}.';
+        if (existing.role != role) {
+          throw 'This phone is already registered as ${existing.role.name}.';
+        }
         await _saveSession(existing);
         return existing;
       }
@@ -83,10 +84,10 @@ class Auth extends ChangeNotifier {
       } on PostgrestException catch (e) {
         throw _humanError(e);
       }
-      // Verify the row actually made it (defends against silent RLS rejects).
+      // Verify row actually persisted (defends against silent RLS rejects).
       final readBack = await Repo.instance.findUserById(saved.id);
       if (readBack == null) {
-        throw 'Account could not be created. The server accepted the request but no row was stored — check Supabase RLS / schema.';
+        throw 'Account could not be created on the server. Please run supabase/schema.sql in your Supabase project.';
       }
       await _saveSession(readBack);
       return readBack;
@@ -98,20 +99,46 @@ class Auth extends ChangeNotifier {
     }
   }
 
-  /// Re-create the current user's profile row in Supabase if missing.
-  /// Returns true if the row exists (or was successfully recreated).
-  /// Called automatically by repo when an FK error is detected on writes.
+  /// Make sure the current user's profile row really exists in Supabase.
+  ///
+  /// 3-step strategy (handles every failure mode I've seen in production):
+  ///   1. Look up by id           → if found, done.
+  ///   2. Look up by PHONE        → if found, sync local session to that
+  ///      row's id and return true. (Handles case where the local session
+  ///      drifted away from the actual server id — e.g. user re-signed-up
+  ///      on a different device.)
+  ///   3. Insert a fresh row      → upsert in-memory user, verify it landed.
+  ///
+  /// Returns true if the profile is confirmed to exist on the server after
+  /// this call, false otherwise.
   Future<bool> ensureProfileExists() async {
     final u = currentUser;
     if (u == null) return false;
     try {
-      final existing = await Repo.instance.findUserById(u.id);
+      // Step 1: by id
+      var existing = await Repo.instance.findUserById(u.id);
       if (existing != null) return true;
-      // Profile missing — recreate from in-memory user.
+
+      // Step 2: by phone — maybe the server id is different from ours
+      existing = await Repo.instance.findUserByPhone(u.phone);
+      if (existing != null) {
+        // Adopt the server's row id so future writes (vehicles, bookings)
+        // pass FK checks. Update local session to match.
+        await _saveSession(existing);
+        return true;
+      }
+
+      // Step 3: create fresh
       await Repo.instance.upsertUser(u);
-      // Verify it actually landed.
       final after = await Repo.instance.findUserById(u.id);
-      return after != null;
+      if (after != null) return true;
+      // Fall back: maybe the id was reassigned — look up by phone again
+      final byPhone = await Repo.instance.findUserByPhone(u.phone);
+      if (byPhone != null) {
+        await _saveSession(byPhone);
+        return true;
+      }
+      return false;
     } catch (_) {
       return false;
     }
@@ -120,7 +147,7 @@ class Auth extends ChangeNotifier {
   String _humanError(PostgrestException e) {
     final msg = e.message;
     if (e.code == 'PGRST205' || msg.contains("Could not find the table")) {
-      return 'Server not initialised yet. Admin needs to run supabase/schema.sql once.';
+      return 'Server is not initialised. Admin needs to run supabase/schema.sql in the Supabase SQL editor.';
     }
     if (msg.contains('duplicate key') && msg.contains('phone')) {
       return 'This phone number is already registered.';
@@ -130,11 +157,13 @@ class Auth extends ChangeNotifier {
 
   Future<void> refresh() async {
     if (currentUser == null) return;
-    final u = await Repo.instance.findUserById(currentUser!.id);
-    if (u != null) {
-      currentUser = u;
-      notifyListeners();
-    }
+    try {
+      final u = await Repo.instance.findUserById(currentUser!.id);
+      if (u != null) {
+        currentUser = u;
+        notifyListeners();
+      }
+    } catch (_) {/* network blip — keep cached user */}
   }
 
   Future<void> logout() async {
