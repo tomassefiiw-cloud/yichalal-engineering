@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 import 'models.dart';
@@ -12,12 +13,16 @@ class Auth extends ChangeNotifier {
 
   AppUser? currentUser;
 
-  /// Restore from saved session on app startup.
   Future<void> bootstrap() async {
     final prefs = await SharedPreferences.getInstance();
     final id = prefs.getString(_prefId);
     if (id != null) {
-      currentUser = await Repo.instance.findUserById(id);
+      try {
+        currentUser = await Repo.instance.findUserById(id);
+      } catch (_) {
+        // Session restore failed (DB unreachable / missing table) — clear it.
+        await prefs.remove(_prefId);
+      }
     }
     notifyListeners();
   }
@@ -26,7 +31,14 @@ class Auth extends ChangeNotifier {
   /// Throws if the user exists but with a DIFFERENT role (cross-role login attempt).
   Future<AppUser?> verifyOtpAndLogin({required String phone, required String code, required UserRole expectedRole}) async {
     if (code.trim() != '123456') throw 'Invalid OTP. Use 123456 for demo.';
-    final u = await Repo.instance.findUserByPhone(phone);
+    final AppUser? u;
+    try {
+      u = await Repo.instance.findUserByPhone(phone);
+    } on PostgrestException catch (e) {
+      throw _humanError(e);
+    } catch (e) {
+      throw 'Could not reach server. Check your internet connection.';
+    }
     if (u == null) return null;
     if (u.role != expectedRole) {
       throw 'This phone is registered as ${u.role.name}. Open the correct app.';
@@ -42,22 +54,40 @@ class Auth extends ChangeNotifier {
     List<String> specialties = const [], String? tradeLicenseUrl, String? nationalIdUrl,
     List<String> workshopPhotoUrls = const [],
   }) async {
-    final existing = await Repo.instance.findUserByPhone(phone);
-    if (existing != null) {
-      if (existing.role != role) throw 'This phone is already registered as ${existing.role.name}.';
-      await _saveSession(existing);
-      return existing;
+    try {
+      final existing = await Repo.instance.findUserByPhone(phone);
+      if (existing != null) {
+        if (existing.role != role) throw 'This phone is already registered as ${existing.role.name}.';
+        await _saveSession(existing);
+        return existing;
+      }
+      final u = AppUser(
+        id: _uuid.v4(), fullName: fullName, phone: phone, email: email,
+        role: role, address: address, language: 'en', engineTypes: engineTypes,
+        specialties: specialties, tradeLicenseUrl: tradeLicenseUrl, nationalIdUrl: nationalIdUrl,
+        workshopPhotoUrls: workshopPhotoUrls,
+        kycVerified: role == UserRole.customer, // customers auto-verified
+      );
+      final saved = await Repo.instance.upsertUser(u);
+      await _saveSession(saved);
+      return saved;
+    } on PostgrestException catch (e) {
+      throw _humanError(e);
+    } catch (e) {
+      if (e is String) rethrow;
+      throw 'Sign-up failed: $e';
     }
-    final u = AppUser(
-      id: _uuid.v4(), fullName: fullName, phone: phone, email: email,
-      role: role, address: address, language: 'en', engineTypes: engineTypes,
-      specialties: specialties, tradeLicenseUrl: tradeLicenseUrl, nationalIdUrl: nationalIdUrl,
-      workshopPhotoUrls: workshopPhotoUrls,
-      kycVerified: role == UserRole.customer, // customers auto-verified
-    );
-    final saved = await Repo.instance.upsertUser(u);
-    await _saveSession(saved);
-    return saved;
+  }
+
+  String _humanError(PostgrestException e) {
+    final msg = e.message;
+    if (e.code == 'PGRST205' || msg.contains("Could not find the table")) {
+      return 'Server not initialised yet. Admin needs to run supabase/schema.sql once.';
+    }
+    if (msg.contains('duplicate key') && msg.contains('phone')) {
+      return 'This phone number is already registered.';
+    }
+    return 'Server error: $msg';
   }
 
   Future<void> refresh() async {

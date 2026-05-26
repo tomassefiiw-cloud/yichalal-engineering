@@ -176,4 +176,20 @@ class Repo {
   Future<void> updateUserOnline(String userId, bool online) async {
     await _sb.from('profiles').update({'is_online': online}).eq('id', userId);
   }
+  /// Returns null if the Supabase project is properly set up, otherwise a
+  /// human-readable error explaining what's missing.
+  Future<String?> healthCheck() async {
+    try {
+      await _sb.from('profiles').select('id').limit(1);
+      return null;
+    } on PostgrestException catch (e) {
+      if (e.code == 'PGRST205') {
+        return 'Server is not initialised. Please run supabase/schema.sql in your Supabase SQL editor (one-time setup).';
+      }
+      return 'Server error: ${e.message}';
+    } catch (e) {
+      return 'Cannot reach server. Check your internet connection.';
+    }
+  }
+
 }
