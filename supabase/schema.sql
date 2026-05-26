@@ -186,5 +186,33 @@ begin
   end if;
 end $$;
 
+
+-- ── DRIFT REPAIR (heal databases created before all columns existed) ─
+-- Some early test installs may be missing optional columns. These add
+-- them only if missing, so re-running this file is always safe.
+alter table vehicles  add column if not exists photo_url text;
+alter table vehicles  add column if not exists vin text;
+alter table vehicles  add column if not exists color text;
+alter table vehicles  add column if not exists mileage int;
+alter table profiles  add column if not exists trade_license_url text;
+alter table profiles  add column if not exists national_id_url text;
+alter table profiles  add column if not exists workshop_photo_urls text[] default array[]::text[];
+alter table profiles  add column if not exists specialties text[] default array[]::text[];
+alter table profiles  add column if not exists engine_types text[] default array[]::text[];
+alter table profiles  add column if not exists lat double precision;
+alter table profiles  add column if not exists lng double precision;
+alter table profiles  add column if not exists is_online boolean default true;
+alter table profiles  add column if not exists wallet_balance numeric default 0;
+alter table bookings  add column if not exists photo_urls text[] default array[]::text[];
+alter table bookings  add column if not exists mechanic_reply text;
+alter table bookings  add column if not exists review text;
+alter table bookings  add column if not exists rating numeric default 0;
+alter table bookings  add column if not exists payment_method text;
+alter table bookings  add column if not exists payment_status text default 'unpaid';
+
+-- Force PostgREST to reload its schema cache so the new columns are
+-- visible to the REST API immediately (no manual restart needed).
+notify pgrst, 'reload schema';
+
 -- ── DONE ─────────────────────────────────────────────────────────────
 -- After running this once, both APKs work end-to-end across devices.

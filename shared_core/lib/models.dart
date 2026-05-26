@@ -96,8 +96,19 @@ class Vehicle {
     required this.engineType, required this.plateNumber, this.vin, this.color, this.mileage, this.photoUrl, DateTime? createdAt})
     : createdAt = createdAt ?? DateTime.now();
   String get title => '$year $make $model';
-  Map<String, dynamic> toInsert() => {'id': id, 'owner_id': ownerId, 'make': make, 'model': model, 'year': year,
-    'vin': vin, 'engine_type': engineType.name, 'plate_number': plateNumber, 'color': color, 'mileage': mileage, 'photo_url': photoUrl};
+  Map<String, dynamic> toInsert() {
+    // Only include non-null optional columns so a missing/cached-out optional
+    // column in Supabase (e.g. photo_url) doesn't break the insert.
+    final m = <String, dynamic>{
+      'id': id, 'owner_id': ownerId, 'make': make, 'model': model, 'year': year,
+      'engine_type': engineType.name, 'plate_number': plateNumber,
+    };
+    if (vin != null && vin!.trim().isNotEmpty) m['vin'] = vin;
+    if (color != null && color!.trim().isNotEmpty) m['color'] = color;
+    if (mileage != null) m['mileage'] = mileage;
+    if (photoUrl != null && photoUrl!.trim().isNotEmpty) m['photo_url'] = photoUrl;
+    return m;
+  }
   static Vehicle fromRow(Map<String, dynamic> m) => Vehicle(
     id: m['id'], ownerId: m['owner_id'], make: m['make'] ?? '', model: m['model'] ?? '',
     year: m['year'] ?? DateTime.now().year, vin: m['vin'],
