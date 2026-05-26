@@ -62,3 +62,5 @@ cd ../mechanic_app && flutter pub get && flutter build apk --release
 
 - **GPS**: device-level geolocator is incompatible with Flutter 3.24's plugin contract; the apps use each user's saved address + simulated movement on a real OpenStreetMap. This is a known constraint of the chosen Flutter version, not a code bug.
 - **Cross-device wake-from-sleep push**: requires an FCM project. Local notifications work in foreground/background.
+
+<!-- build trigger: 2026-05-26T10:46:52Z -->
