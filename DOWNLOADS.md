@@ -62,3 +62,5 @@ Always **`123456`** (real Twilio SMS would need your Twilio keys).
 ## Application IDs (so both can coexist on one phone)
 - Customer: `com.yichalal.customer` — "Yichalal Customer"
 - Mechanic: `com.yichalal.mechanic` — "Yichalal Mechanic"
+
+<!-- v1.0.4 build trigger: 2026-05-26T11:35:27Z -->
