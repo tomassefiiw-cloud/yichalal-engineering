@@ -8,20 +8,21 @@ on:
 env:
   SUPABASE_URL: https://mfnoyegiuuwthygprjua.supabase.co
   SUPABASE_ANON_KEY: sb_publishable_eDkeKLLqtUKeqKGKGsQVGA_BkcXKz5U
-  # OpenRouter API key — base64-encoded to bypass GitHub's secret push protection.
-  # The value is a free-tier model key for openai/gpt-oss-120b:free.
   OPENROUTER_KEY_B64: c2stb3ItdjEtNTA1Y2EyZDM5OGY2ODY4ZjkwZDc5YjQ4ODU2Mzg3MDdiZGQwZjU5NmRiMzM0OWQ0OWQxNGIxYjI2MzZiMGEwNA==
   OPENROUTER_MODEL: openai/gpt-oss-120b:free
+  APP_VERSION: 1.1.0
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout (with retry)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Decode OpenRouter key
-        id: keys
         run: |
           OPENROUTER_KEY=$(echo "${{ env.OPENROUTER_KEY_B64 }}" | base64 -d)
           echo "::add-mask::$OPENROUTER_KEY"
@@ -33,8 +34,8 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2.18.0
+      - name: Set up Flutter (with retry)
+        uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.5'
           channel: stable
@@ -47,12 +48,14 @@ jobs:
             ~/.gradle/caches
             ~/.gradle/wrapper
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
+          restore-keys: ${{ runner.os }}-gradle-
 
       - name: Cache pub
         uses: actions/cache@v4
         with:
           path: ~/.pub-cache
           key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.yaml') }}
+          restore-keys: ${{ runner.os }}-pub-
 
       - name: Generate release keystore
         run: |
@@ -80,7 +83,7 @@ jobs:
             --dart-define=OPENROUTER_MODEL=${{ env.OPENROUTER_MODEL }}
 
       - name: Customer — rename
-        run: mv customer_app/build/app/outputs/flutter-apk/app-release.apk yichalal-customer-v1.0.5.apk
+        run: mv customer_app/build/app/outputs/flutter-apk/app-release.apk yichalal-customer-v${{ env.APP_VERSION }}.apk
 
       # ── Mechanic app ──
       - name: Mechanic — pub get
@@ -99,11 +102,11 @@ jobs:
             --dart-define=OPENROUTER_MODEL=${{ env.OPENROUTER_MODEL }}
 
       - name: Mechanic — rename
-        run: mv mechanic_app/build/app/outputs/flutter-apk/app-release.apk yichalal-mechanic-v1.0.5.apk
+        run: mv mechanic_app/build/app/outputs/flutter-apk/app-release.apk yichalal-mechanic-v${{ env.APP_VERSION }}.apk
 
       - name: Zip source
         run: |
-          zip -rq yichalal-source-v1.0.5.zip customer_app mechanic_app shared_core supabase README.md \
+          zip -rq yichalal-source-v${{ env.APP_VERSION }}.zip customer_app mechanic_app shared_core supabase README.md \
             -x "*/build/*" "*/.gradle/*" "*/.dart_tool/*"
 
       - name: Show artifact info
@@ -118,20 +121,20 @@ jobs:
           SERVER=$(curl -s https://api.gofile.io/servers | python3 -c "import sys,json;print(json.load(sys.stdin)['data']['servers'][0]['name'])")
           echo "Server: $SERVER"
 
-          CR=$(curl -s -X POST "https://${SERVER}.gofile.io/contents/uploadfile" -F "file=@yichalal-customer-v1.0.5.apk")
+          CR=$(curl -s -X POST "https://${SERVER}.gofile.io/contents/uploadfile" -F "file=@yichalal-customer-v${{ env.APP_VERSION }}.apk")
           CURL=$(echo "$CR" | python3 -c "import sys,json;print(json.load(sys.stdin)['data']['downloadPage'])")
           echo "customer_url=$CURL" >> $GITHUB_OUTPUT
 
-          MR=$(curl -s -X POST "https://${SERVER}.gofile.io/contents/uploadfile" -F "file=@yichalal-mechanic-v1.0.5.apk")
+          MR=$(curl -s -X POST "https://${SERVER}.gofile.io/contents/uploadfile" -F "file=@yichalal-mechanic-v${{ env.APP_VERSION }}.apk")
           MURL=$(echo "$MR" | python3 -c "import sys,json;print(json.load(sys.stdin)['data']['downloadPage'])")
           echo "mechanic_url=$MURL" >> $GITHUB_OUTPUT
 
-          ZR=$(curl -s -X POST "https://${SERVER}.gofile.io/contents/uploadfile" -F "file=@yichalal-source-v1.0.5.zip")
+          ZR=$(curl -s -X POST "https://${SERVER}.gofile.io/contents/uploadfile" -F "file=@yichalal-source-v${{ env.APP_VERSION }}.zip")
           ZURL=$(echo "$ZR" | python3 -c "import sys,json;print(json.load(sys.stdin)['data']['downloadPage'])")
           echo "source_url=$ZURL" >> $GITHUB_OUTPUT
 
           {
-            echo "## ✅ Yichalal Engineering — Build complete"
+            echo "## ✅ Yichalal Engineering v${{ env.APP_VERSION }} — Build complete"
             echo ""
             echo "### 📱 Customer APK"
             echo "**$CURL**"
@@ -152,9 +155,9 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: yichalal-apks
+          name: yichalal-apks-v${{ env.APP_VERSION }}
           path: |
-            yichalal-customer-v1.0.5.apk
-            yichalal-mechanic-v1.0.5.apk
-            yichalal-source-v1.0.5.zip
+            yichalal-customer-v${{ env.APP_VERSION }}.apk
+            yichalal-mechanic-v${{ env.APP_VERSION }}.apk
+            yichalal-source-v${{ env.APP_VERSION }}.zip
           retention-days: 30
