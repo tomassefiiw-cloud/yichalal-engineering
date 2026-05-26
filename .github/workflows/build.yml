@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
 
 env:
-  SUPABASE_URL: https://mfnoyegiuuwthygprjua.supabase.co
-  SUPABASE_ANON_KEY: sb_publishable_eDkeKLLqtUKeqKGKGsQVGA_BkcXKz5U
+  SUPABASE_URL: https://yptrodblyfscyqngakie.supabase.co
+  SUPABASE_ANON_KEY: sb_publishable_aURUM8bSD1KPhH_9_dgaXw_MZbGfb1r
   OPENROUTER_KEY_B64: c2stb3ItdjEtNTA1Y2EyZDM5OGY2ODY4ZjkwZDc5YjQ4ODU2Mzg3MDdiZGQwZjU5NmRiMzM0OWQ0OWQxNGIxYjI2MzZiMGEwNA==
   OPENROUTER_MODEL: openai/gpt-oss-120b:free
   APP_VERSION: 1.1.0

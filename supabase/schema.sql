@@ -1,13 +1,14 @@
 -- =================================================================
 -- Yichalal Engineering — Supabase schema (idempotent, safe to re-run)
--- INSTRUCTIONS:
---   1. Open https://supabase.com/dashboard/project/mfnoyegiuuwthygprjua
---   2. Left sidebar → SQL Editor → New query
---   3. Paste this entire file → click Run
---   4. Done. Both customer & mechanic apps will work instantly.
+--
+-- TO APPLY:
+--   1. Open https://supabase.com/dashboard/project/yptrodblyfscyqngakie/sql/new
+--   2. Paste this entire file
+--   3. Click Run
+--   4. Done. Both APKs work end-to-end across devices.
 -- =================================================================
 
--- ── PROFILES (users) ─────────────────────────────────────────────────
+-- ── PROFILES ─────────────────────────────────────────────────────────
 create table if not exists profiles (
   id uuid primary key default gen_random_uuid(),
   full_name text not null,
@@ -46,7 +47,7 @@ create table if not exists vehicles (
 );
 create index if not exists vehicles_owner_idx on vehicles(owner_id);
 
--- ── BOOKINGS ────────────────────────────────────────────────────────
+-- ── BOOKINGS ─────────────────────────────────────────────────────────
 create table if not exists bookings (
   id uuid primary key default gen_random_uuid(),
   customer_id uuid not null references profiles(id) on delete cascade,
@@ -76,7 +77,7 @@ create index if not exists bookings_customer_idx on bookings(customer_id);
 create index if not exists bookings_mechanic_idx on bookings(mechanic_id);
 create index if not exists bookings_status_idx on bookings(status);
 
--- ── CHATS ───────────────────────────────────────────────────────────
+-- ── CHATS ────────────────────────────────────────────────────────────
 create table if not exists chats (
   id uuid primary key default gen_random_uuid(),
   booking_id uuid not null references bookings(id) on delete cascade,
@@ -120,7 +121,7 @@ create table if not exists diagnoses (
   date timestamptz default now()
 );
 
--- ── INVENTORY (mechanic-owned parts) ─────────────────────────────────
+-- ── INVENTORY ────────────────────────────────────────────────────────
 create table if not exists inventory (
   id uuid primary key default gen_random_uuid(),
   mechanic_id uuid not null references profiles(id) on delete cascade,
@@ -141,11 +142,7 @@ create table if not exists notifications (
 );
 create index if not exists notif_user_idx on notifications(user_id, ts desc);
 
--- ── DISABLE ROW LEVEL SECURITY ───────────────────────────────────────
--- The publishable key is what the mobile app ships with. To make all reads
--- and writes work without a custom auth.users mapping, we disable RLS on
--- these tables. (Safe for this app's design — every row carries its owner_id
--- and the app's UI enforces who-can-do-what.)
+-- ── DISABLE RLS ──────────────────────────────────────────────────────
 alter table profiles            disable row level security;
 alter table vehicles            disable row level security;
 alter table bookings            disable row level security;
@@ -156,40 +153,24 @@ alter table diagnoses           disable row level security;
 alter table inventory           disable row level security;
 alter table notifications       disable row level security;
 
--- ── EXPLICIT GRANTS to the anon/publishable role ─────────────────────
--- Without these some Supabase projects (depending on version) still block
--- writes from the publishable key. Granting all on the tables makes the
--- mobile app's CRUD operations work reliably.
+-- ── GRANTS to anon/publishable role ──────────────────────────────────
 grant usage on schema public to anon, authenticated;
 grant all on profiles, vehicles, bookings, chats, wallet_txns,
             service_records, diagnoses, inventory, notifications
        to anon, authenticated;
 grant usage, select on all sequences in schema public to anon, authenticated;
 
--- ── REALTIME (cross-device live updates) ─────────────────────────────
+-- ── REALTIME ─────────────────────────────────────────────────────────
 do $$
 begin
-  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'bookings') then
-    alter publication supabase_realtime add table bookings;
-  end if;
-  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'chats') then
-    alter publication supabase_realtime add table chats;
-  end if;
-  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'notifications') then
-    alter publication supabase_realtime add table notifications;
-  end if;
-  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'profiles') then
-    alter publication supabase_realtime add table profiles;
-  end if;
-  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'vehicles') then
-    alter publication supabase_realtime add table vehicles;
-  end if;
+  for tbl in select unnest(array['bookings','chats','notifications','profiles','vehicles']) loop
+    if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = tbl) then
+      execute format('alter publication supabase_realtime add table %I', tbl);
+    end if;
+  end loop;
 end $$;
 
-
--- ── DRIFT REPAIR (heal databases created before all columns existed) ─
--- Some early test installs may be missing optional columns. These add
--- them only if missing, so re-running this file is always safe.
+-- ── DRIFT REPAIR (heals partial schemas) ─────────────────────────────
 alter table vehicles  add column if not exists photo_url text;
 alter table vehicles  add column if not exists vin text;
 alter table vehicles  add column if not exists color text;
@@ -210,9 +191,19 @@ alter table bookings  add column if not exists rating numeric default 0;
 alter table bookings  add column if not exists payment_method text;
 alter table bookings  add column if not exists payment_status text default 'unpaid';
 
--- Force PostgREST to reload its schema cache so the new columns are
--- visible to the REST API immediately (no manual restart needed).
+-- ── Reload PostgREST cache so new columns are visible immediately ────
 notify pgrst, 'reload schema';
 
--- ── DONE ─────────────────────────────────────────────────────────────
--- After running this once, both APKs work end-to-end across devices.
+-- ── DEMO SEED (one-tap demo accounts) ────────────────────────────────
+insert into profiles (id, full_name, phone, role, address, language, wallet_balance, lat, lng, is_online, kyc_verified)
+values
+  ('11111111-1111-1111-1111-111111111111','Demo Customer (Abebe)','+251911000001','customer','Bole, Addis Ababa','en',5000,9.0108,38.7613,true,true),
+  ('22222222-2222-2222-2222-222222222222','Demo Mechanic (Solomon)','+251911000002','mechanic','Megenagna, Addis Ababa','en',12450,9.0192,38.8000,true,true),
+  ('33333333-3333-3333-3333-333333333333','Demo Mechanic (Hanna)','+251911000003','mechanic','Sarbet, Addis Ababa','en',8200,9.0023,38.7506,true,true),
+  ('44444444-4444-4444-4444-444444444444','Demo Mechanic (Mulugeta)','+251911000004','mechanic','Piassa, Addis Ababa','en',0,9.0353,38.7531,true,false),
+  ('55555555-5555-5555-5555-555555555555','Demo Admin','+251911000000','admin','HQ, Addis Ababa','en',0,9.01,38.76,true,false)
+on conflict (id) do nothing;
+
+update profiles set specialties = array['Engine','Transmission','Electrical'] where id = '22222222-2222-2222-2222-222222222222';
+update profiles set specialties = array['EV','Hybrid','Diagnostics'] where id = '33333333-3333-3333-3333-333333333333';
+update profiles set specialties = array['Bodywork','Detailing'] where id = '44444444-4444-4444-4444-444444444444';
