@@ -162,9 +162,15 @@ grant usage, select on all sequences in schema public to anon, authenticated;
 
 -- ── REALTIME ─────────────────────────────────────────────────────────
 do $$
+declare
+  tbl text;
 begin
-  for tbl in select unnest(array['bookings','chats','notifications','profiles','vehicles']) loop
-    if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = tbl) then
+  foreach tbl in array array['bookings','chats','notifications','profiles','vehicles']
+  loop
+    if not exists (
+      select 1 from pg_publication_tables
+      where pubname = 'supabase_realtime' and tablename = tbl
+    ) then
       execute format('alter publication supabase_realtime add table %I', tbl);
     end if;
   end loop;
