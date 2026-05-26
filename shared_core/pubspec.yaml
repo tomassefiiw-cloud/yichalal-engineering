@@ -22,8 +22,9 @@ dependencies:
   image_picker: ^1.1.2
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
-  # geolocator 12 supports Flutter 3.16+; works with AGP 8.3 + compileSdk 35.
-  geolocator: ^12.0.0
+  # location package: pure native Android plugin that doesn't pull the broken
+  # geolocator_android. Compatible with Flutter 3.24 + AGP 8.3 + compileSdk 35.
+  location: 7.0.0
   pdf: ^3.11.1
   open_filex: ^4.5.0
   fl_chart: ^0.69.0

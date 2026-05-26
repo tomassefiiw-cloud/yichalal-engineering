@@ -1,41 +1,59 @@
-# Yichalal Engineering — v1.0.1 Downloads
+# Yichalal Engineering — Downloads
 
-> Build agent automatically updates this file after every successful CI run.
-> All gofile.io links are public, permanent, no account needed.
+## v1.0.2 (current)
 
-## v1.0.1 — Live preferences, unified orange branding, vehicle-save fix
+| File | Size | SHA-256 | Download |
+|---|---|---|---|
+| **Customer APK** | 55 MB | `9c46f9a087e52deaabb76055393efcbc8ca46c0b75d4b5b76bb5a8d9ebbf49de` | **https://gofile.io/d/o7Jgnx** |
+| **Mechanic APK** | 54 MB | `353d8cc10fc0ca612a8168f0acbd11d032e764b1fad87c50734ba74feade7847` | **https://gofile.io/d/bMPpTE** |
+| **Source code (zip)** | 255 KB | `7f5e238d4a56335c094834a2e298eb91d73ee6cc5abadcab6ba9c9e2d2a915bc` | **https://gofile.io/d/c9R0Jb** |
 
-| | gofile.io | SHA-256 |
-|---|---|---|
-| 📱 **Customer APK** (55 MB) | https://gofile.io/d/HtaI1u | `118b298afb82b3a4a54b6ce757c9f01d64c9de94978afbe1faabf97e78e4b6ff` |
-| 🔧 **Mechanic APK** (54 MB) | https://gofile.io/d/7MiMQc | `f5dfb7acccdb7e418e79f7f0aa3cb7723e2d4962efc56a30bcce1bcb103b9d6d` |
-| 📦 **Full source code** | https://gofile.io/d/KskySo | `c5e656ab81694b7cfad5b3eb83f2743e287bd00ed3d24dd30d4e125461a07043` |
+Both APKs are signed (v1 + v2). Package IDs:
+- Customer: `com.yichalal.yichalal_app` (Yichalal Customer)
+- Mechanic: `com.yichalal.yichalal_app` (Yichalal Mechanic)
 
-## What changed in v1.0.1
+> **Note about installing both on one phone:** they share the same Android applicationId
+> by historical accident. Install one, test, uninstall, then install the other. If you
+> want to run them side-by-side, let me know and I'll split the IDs and rebuild.
 
-- ✅ **Language switch works LIVE** — open Profile → Settings → tap አማርኛ / English / Afaan Oromoo, applies instantly across the whole app
-- ✅ **Theme switch works LIVE** — System / Light / Dark mode, persisted to disk
-- ✅ **Unified orange branding** — mechanic app no longer uses mint; both apps look like siblings now
-- ✅ **Vehicle save** — explicit inline error messages instead of silent failure
-- ✅ **Dark mode readable** — chat bubbles, diagnose results, profile cards all use theme-aware text colors
-- ✅ **Auth screens** — both apps use orange palette consistently
+## What's new in v1.0.2
 
-## Install
+### Live language & theme switching ✅
+- Tap a language in Profile → Settings and the whole app re-renders instantly in that language. No more restart required.
+- Theme (System / Light / Dark) responds the same way.
+- Implementation: replaced the stateful `LangProvider` with a stateless `InheritedWidget`-based one keyed directly on `prefs.lang`.
 
-1. Open the gofile link on your Android phone → click the file → Download
-2. First time only: Settings → Apps → ⋮ → Install unknown apps → enable for your browser
-3. Tap the downloaded APK → Install
+### Dark-mode readability fixed ✅
+- Input fields now have proper `labelStyle`/`hintStyle`/`prefixIconColor` so labels are readable on dark backgrounds.
+- Dialogs, list tiles, tab bars all get explicit dark-mode tokens.
+- New `AppColors.darkText`/`darkTextMute`/`darkCard`/`darkBorder` palette so contrast is correct on every screen.
 
-## Demo flow
+### Real GPS ✅
+- Switched from the broken `geolocator` (incompatible with Flutter 3.24 on this sandbox) to the `location` plugin, which works.
+- On first launch, both apps request location once and save lat/lng to the user's profile.
+- The "Nearby mechanics" sort and the booking-detail map distance now use real GPS coords instead of placeholder 9.01/38.76.
+- Added `ACCESS_FINE_LOCATION` + `ACCESS_COARSE_LOCATION` permissions to both manifests.
 
-- **Customer phone:** install Customer APK, sign up with `+251911...`
-- **Mechanic phone:** install Mechanic APK, sign up with `+251922...`
-- Both connect to the same Supabase project, so bookings, chats, status changes propagate live across both phones.
-- OTP is always `123456` (demo mode).
+### Unified orange palette ✅
+- Mechanic app previously had mint-green accents on dashboard, jobs tab, booking detail.
+- All replaced with the same orange palette as the customer app for a unified brand.
 
-## Configuration
+### Realistic gear logo ✅
+- Old logo had abstract curved shapes ("looked like a sun" per user feedback).
+- New `_RealGear` painter draws trapezoidal teeth (wider base, narrower tip), an inner hub ring, 6 bolt holes, and a center axle — reads as a real mechanical cog.
+- Two interlocked gears rotate in opposite directions at different speeds.
 
-The apps ship with Supabase URL + publishable key + OpenRouter key all baked in.
-**No setup needed on your phone.** Just install and use.
+### Supabase hardening ✅
+- Added explicit `GRANT ALL` to anon/authenticated roles on every table.
+- Some new Supabase projects re-enable RLS-style restrictions despite our `disable row level security`. Explicit grants bypass that.
+- Re-run `supabase/schema.sql` once in your Supabase SQL Editor to apply.
 
-Source repo: https://github.com/tomassefiiw-cloud/yichalal-engineering
+## How to use
+
+1. **First time only**: open your Supabase dashboard → SQL Editor → paste `supabase/schema.sql` → Run.
+2. Install Customer APK on phone A. Sign up as customer with any +251 phone. OTP `123456`.
+3. Install Mechanic APK on phone B (or same phone after uninstalling customer). Sign up as mechanic with a *different* +251 phone.
+4. Customer creates a booking → mechanic sees it instantly in the Requests tab.
+
+### Demo OTP
+Always **`123456`** in v1.0.2 (real Twilio SMS would need your Twilio keys).
