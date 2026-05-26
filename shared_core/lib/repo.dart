@@ -63,10 +63,11 @@ class Repo {
     return rows.isEmpty ? null : Vehicle.fromRow(rows.first);
   }
 
+  /// Realtime stream of a customer's vehicles — newest first.
   Stream<List<Vehicle>> vehiclesStreamOf(String ownerId) =>
       _sb.from('vehicles').stream(primaryKey: ['id']).eq('owner_id', ownerId)
-          .order('created_at')
-          .map((rows) => rows.reversed.map((r) => Vehicle.fromRow(r)).toList());
+          .order('created_at', ascending: false)
+          .map((rows) => rows.map((r) => Vehicle.fromRow(r)).toList());
 
   // ── Bookings ───────────────────────────────────────────────────────
   Future<Booking> upsertBooking(Booking b) async {
@@ -85,18 +86,18 @@ class Repo {
 
   Stream<List<Booking>> bookingsForCustomer(String customerId) =>
       _sb.from('bookings').stream(primaryKey: ['id']).eq('customer_id', customerId)
-          .order('created_at')
-          .map((rows) => rows.reversed.map((r) => Booking.fromRow(r)).toList());
+          .order('created_at', ascending: false)
+          .map((rows) => rows.map((r) => Booking.fromRow(r)).toList());
 
   Stream<List<Booking>> bookingsForMechanic(String mechanicId) =>
       _sb.from('bookings').stream(primaryKey: ['id']).eq('mechanic_id', mechanicId)
-          .order('created_at')
-          .map((rows) => rows.reversed.map((r) => Booking.fromRow(r)).toList());
+          .order('created_at', ascending: false)
+          .map((rows) => rows.map((r) => Booking.fromRow(r)).toList());
 
   Stream<List<Booking>> pendingBookingsUnassigned() =>
       _sb.from('bookings').stream(primaryKey: ['id']).eq('status', 'pending')
-          .order('created_at')
-          .map((rows) => rows.reversed.map((r) => Booking.fromRow(r)).where((b) => b.mechanicId == null).toList());
+          .order('created_at', ascending: false)
+          .map((rows) => rows.map((r) => Booking.fromRow(r)).where((b) => b.mechanicId == null).toList());
 
   // ── Chats ──────────────────────────────────────────────────────────
   Future<ChatMessage> sendChat(String bookingId, String senderId, String text) async {
@@ -105,9 +106,10 @@ class Repo {
     return msg;
   }
 
+  /// Returns chat messages oldest → newest so the UI shows newest at bottom.
   Stream<List<ChatMessage>> chatStream(String bookingId) =>
       _sb.from('chats').stream(primaryKey: ['id']).eq('booking_id', bookingId)
-          .order('ts')
+          .order('ts', ascending: true)
           .map((rows) => rows.map((r) => ChatMessage.fromRow(r)).toList());
 
   // ── Wallet ─────────────────────────────────────────────────────────
@@ -121,8 +123,8 @@ class Repo {
 
   Stream<List<WalletTxn>> txnsStream(String userId) =>
       _sb.from('wallet_txns').stream(primaryKey: ['id']).eq('user_id', userId)
-          .order('ts')
-          .map((rows) => rows.reversed.map((r) => WalletTxn.fromRow(r)).toList());
+          .order('ts', ascending: false)
+          .map((rows) => rows.map((r) => WalletTxn.fromRow(r)).toList());
 
   // ── Notifications ──────────────────────────────────────────────────
   Future<void> notify(String userId, String title, String body, {String? bookingId}) async {
@@ -133,8 +135,8 @@ class Repo {
 
   Stream<List<AppNotification>> notificationsStream(String userId) =>
       _sb.from('notifications').stream(primaryKey: ['id']).eq('user_id', userId)
-          .order('ts')
-          .map((rows) => rows.reversed.map((r) => AppNotification.fromRow(r)).toList());
+          .order('ts', ascending: false)
+          .map((rows) => rows.map((r) => AppNotification.fromRow(r)).toList());
 
   Future<void> markNotificationRead(String id) async {
     await _sb.from('notifications').update({'read': true}).eq('id', id);

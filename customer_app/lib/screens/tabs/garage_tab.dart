@@ -99,35 +99,54 @@ class _VehicleFormState extends State<_VehicleForm> {
       return;
     }
     setState(() => _saving = true);
-    try {
-      final user = context.read<Auth>().currentUser!;
+    final auth = context.read<Auth>();
+    final user = auth.currentUser!;
+    Future<void> doInsert() async {
       await Repo.instance.upsertVehicle(Vehicle(
         id: const Uuid().v4(),
         ownerId: user.id,
         make: _make.text.trim(),
         model: _model.text.trim(),
-        year: yr,
+        year: yr!,
         plateNumber: _plate.text.trim(),
         engineType: _engine,
         color: _color.text.trim().isEmpty ? null : _color.text.trim(),
         mileage: int.tryParse(_mileage.text.trim()),
         vin: _vin.text.trim().isEmpty ? null : _vin.text.trim(),
       ));
+    }
+    try {
+      try {
+        await doInsert();
+      } catch (e) {
+        final msg = e.toString().toLowerCase();
+        // If FK error (profile row missing for this id), upsert the profile
+        // automatically and retry the vehicle insert once. Common after a
+        // database wipe or for users who signed up before the schema ran.
+        if (msg.contains('foreign key') || msg.contains('violates') || msg.contains('23503')) {
+          await auth.ensureProfileExists();
+          await doInsert();
+        } else {
+          rethrow;
+        }
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Vehicle added'), backgroundColor: AppColors.success));
         Navigator.pop(context);
       }
     } catch (e) {
-      final msg = e.toString();
-      setState(() {
-        _error = msg.contains('foreign key') || msg.contains('PGRST')
-            ? 'Could not save: your profile may not be in the database yet. Log out and sign up again.'
-            : 'Save failed: $msg';
-      });
+      setState(() => _error = 'Save failed: ${_humanError(e.toString())}');
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  String _humanError(String raw) {
+    if (raw.contains('PGRST205')) return 'Server not ready. Run supabase/schema.sql once in Supabase.';
+    if (raw.contains('foreign key') || raw.contains('23503')) return 'Profile sync issue. Try logging out and back in.';
+    if (raw.length > 140) return '${raw.substring(0, 140)}…';
+    return raw;
   }
 
   @override

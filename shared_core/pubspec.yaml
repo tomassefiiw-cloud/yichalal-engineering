@@ -1,7 +1,7 @@
 name: yichalal_core
 description: Shared models, Supabase client, AI engine, theme.
 publish_to: 'none'
-version: 1.0.2
+version: 1.0.3
 
 environment:
   sdk: ^3.5.0

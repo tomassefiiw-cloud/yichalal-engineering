@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:yichalal_core/yichalal_core.dart';
 
@@ -15,11 +14,14 @@ class _ChatScreenState extends State<ChatScreen> {
   final _input = TextEditingController();
   final _scroll = ScrollController();
   AppUser? _peer;
+  int _lastCount = 0;
 
   @override
   void initState() {
     super.initState();
-    Repo.instance.findUserById(widget.peerId).then((u) => mounted ? setState(() => _peer = u) : null);
+    Repo.instance.findUserById(widget.peerId).then((u) {
+      if (mounted) setState(() => _peer = u);
+    });
   }
 
   Future<void> _send() async {
@@ -27,14 +29,24 @@ class _ChatScreenState extends State<ChatScreen> {
     if (t.isEmpty) return;
     _input.clear();
     final me = context.read<Auth>().currentUser!;
-    await Repo.instance.sendChat(widget.bookingId, me.id, t);
-    if (_peer != null) await Repo.instance.notify(_peer!.id, 'New message', t.length > 50 ? '${t.substring(0, 50)}…' : t, bookingId: widget.bookingId);
+    try {
+      await Repo.instance.sendChat(widget.bookingId, me.id, t);
+      if (_peer != null) {
+        await Repo.instance.notify(_peer!.id, 'New message from ${me.fullName}',
+            t.length > 60 ? '${t.substring(0, 60)}…' : t, bookingId: widget.bookingId);
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Send failed: $e')));
+    }
     _scrollToBottom();
   }
 
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scroll.hasClients) _scroll.animateTo(_scroll.position.maxScrollExtent, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+      if (_scroll.hasClients) {
+        _scroll.animateTo(_scroll.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 220), curve: Curves.easeOut);
+      }
     });
   }
 
@@ -47,8 +59,18 @@ class _ChatScreenState extends State<ChatScreen> {
         Expanded(child: StreamBuilder<List<ChatMessage>>(
           stream: Repo.instance.chatStream(widget.bookingId),
           builder: (_, snap) {
-            final list = snap.data ?? [];
-            WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+            // Force ascending order client-side so newest is always at bottom,
+            // regardless of how Supabase orders the stream rows.
+            final list = List<ChatMessage>.from(snap.data ?? [])
+              ..sort((a, b) => a.ts.compareTo(b.ts));
+            if (list.length != _lastCount) {
+              _lastCount = list.length;
+              _scrollToBottom();
+            }
+            if (list.isEmpty) {
+              return const Center(child: Text('Say hello 👋',
+                  style: TextStyle(color: AppColors.textMute)));
+            }
             return ListView.builder(
               controller: _scroll,
               padding: const EdgeInsets.all(12),
@@ -56,20 +78,34 @@ class _ChatScreenState extends State<ChatScreen> {
               itemBuilder: (_, i) {
                 final m = list[i];
                 final mine = m.senderId == me.id;
-                return Align(alignment: mine ? Alignment.centerRight : Alignment.centerLeft, child: Container(
-                  margin: const EdgeInsets.symmetric(vertical: 3),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
-                  decoration: BoxDecoration(
-                    color: mine ? AppColors.orange : AppColors.orangeLight,
-                    borderRadius: BorderRadius.only(
-                      topLeft: const Radius.circular(16), topRight: const Radius.circular(16),
-                      bottomLeft: Radius.circular(mine ? 16 : 4),
-                      bottomRight: Radius.circular(mine ? 4 : 16),
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: Align(
+                    alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
+                      decoration: BoxDecoration(
+                        color: mine ? AppColors.orange : (Theme.of(context).brightness == Brightness.dark ? AppColors.darkCard : AppColors.orangeLight),
+                        borderRadius: BorderRadius.only(
+                          topLeft: const Radius.circular(16),
+                          topRight: const Radius.circular(16),
+                          bottomLeft: Radius.circular(mine ? 16 : 4),
+                          bottomRight: Radius.circular(mine ? 4 : 16),
+                        ),
+                      ),
+                      child: SelectableText(
+                        m.text,
+                        style: TextStyle(
+                          color: mine
+                              ? Colors.white
+                              : (Theme.of(context).brightness == Brightness.dark ? AppColors.darkText : AppColors.text),
+                          fontSize: 14, height: 1.35,
+                        ),
+                      ),
                     ),
                   ),
-                  child: SelectableText(m.text, style: TextStyle(color: mine ? Colors.white : Theme.of(context).textTheme.bodyMedium?.color ?? AppColors.text, fontSize: 14, height: 1.35)),
-                ));
+                );
               },
             );
           },
@@ -80,7 +116,6 @@ class _ChatScreenState extends State<ChatScreen> {
             maxLines: 5, minLines: 1,
             keyboardType: TextInputType.multiline,
             textInputAction: TextInputAction.newline,
-            inputFormatters: const [],
             decoration: const InputDecoration(hintText: 'Message…'),
           )),
           const SizedBox(width: 6),

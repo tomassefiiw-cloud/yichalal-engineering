@@ -23,7 +23,6 @@ class _CustomerShellState extends State<CustomerShell> {
   @override
   void initState() {
     super.initState();
-    // Request GPS once on first build → save to profile so distance is real.
     WidgetsBinding.instance.addPostFrameCallback((_) => _captureLocationOnce());
   }
 
@@ -50,18 +49,26 @@ class _CustomerShellState extends State<CustomerShell> {
 
     return Scaffold(
       appBar: AppBar(
-        titleSpacing: 16,
+        titleSpacing: 12,
         title: Row(children: [
           Container(width: 32, height: 32,
             decoration: const BoxDecoration(color: AppColors.orangeLight, shape: BoxShape.circle),
             child: const Icon(Icons.person, color: AppColors.orangeDark, size: 18)),
           const SizedBox(width: 10),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-            Text('Yichalal', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: titleColor)),
-            const Text('Customer', style: TextStyle(fontSize: 10, color: AppColors.orangeDark, letterSpacing: 1.2)),
-          ])),
+          Expanded(child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+              Text('Yichalal', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: titleColor)),
+              const Text('CUSTOMER',
+                  style: TextStyle(fontSize: 9, color: AppColors.orangeDark, letterSpacing: 1.4, fontWeight: FontWeight.w700)),
+            ]),
+          )),
         ]),
         actions: [
+          IconButton(icon: const Icon(Icons.settings_outlined),
+              tooltip: s.t('settings'),
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen(primary: AppColors.orange)))),
           IconButton(icon: const Icon(Icons.notifications_outlined),
               onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()))),
           IconButton(icon: const Icon(Icons.account_circle_outlined),

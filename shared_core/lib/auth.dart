@@ -19,8 +19,9 @@ class Auth extends ChangeNotifier {
     if (id != null) {
       try {
         currentUser = await Repo.instance.findUserById(id);
+        // If user not found (deleted from DB), clear stale session.
+        if (currentUser == null) await prefs.remove(_prefId);
       } catch (_) {
-        // Session restore failed (DB unreachable / missing table) — clear it.
         await prefs.remove(_prefId);
       }
     }
@@ -76,6 +77,23 @@ class Auth extends ChangeNotifier {
     } catch (e) {
       if (e is String) rethrow;
       throw 'Sign-up failed: $e';
+    }
+  }
+
+  /// Re-create the current user's profile row in Supabase. Useful when an old
+  /// session points to an id that's missing from the database (e.g. dropped
+  /// during testing). Called automatically when an FK error is detected
+  /// downstream.
+  Future<bool> ensureProfileExists() async {
+    final u = currentUser;
+    if (u == null) return false;
+    try {
+      final existing = await Repo.instance.findUserById(u.id);
+      if (existing != null) return true;
+      await Repo.instance.upsertUser(u);
+      return true;
+    } catch (_) {
+      return false;
     }
   }
 
